@@ -1,0 +1,10 @@
+pytest 
+requests
+fastapi
+firebase-admin
+gradio
+openai
+pinecone-io
+pydantic
+python-dotenv
+swagger-ui-bundle
