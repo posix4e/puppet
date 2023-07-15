@@ -1,10 +1,15 @@
-pytest 
-requests
 fastapi
 firebase-admin
+flask
 gradio
+httpx
 openai
 pinecone-io
 pydantic
 python-dotenv
 swagger-ui-bundle
+
+pytest-asyncio 
+pytest 
+requests
+

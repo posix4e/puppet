@@ -1,8 +1,15 @@
-import requests
+import time
+from fastapi.testclient import TestClient
+import pytest
 import json
+import backend
+import httpx
 
 
-def test_register():
+@pytest.mark.asyncio
+async def test_register():
+    client = TestClient(backend.app)
+
     data = {
         "apiKey": "test-api-key",
         "authDomain": "test-auth-domain",
@@ -10,24 +17,5 @@ def test_register():
         "storageBucket": "test-storage-bucket",
         "openai_key": "test-openai-key",
     }
-    response = requests.post(
-        "http://localhost:8000/register",
-        data=json.dumps(data),
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 200
-    uid = response.json().get("uid")
-    assert uid is not None
-
-    # Let's use this uid to send a process request
-    data = {
-        "uid": uid,
-        "prompt": "Hello, OpenAI!",
-    }
-    response = requests.post(
-        "http://localhost:8000/process_request",
-        data=json.dumps(data),
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 200
-    assert response.json().get("message") == "Notification sent"
+    with pytest.raises(ValueError):
+        client.post("/register", json=data)

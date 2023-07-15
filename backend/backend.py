@@ -2,13 +2,19 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from firebase_admin import credentials, messaging, initialize_app, auth
 import openai
-import uuid
 import asyncio
+import gradio as gr
+from fastapi.middleware.wsgi import WSGIMiddleware
+from fastapi.staticfiles import StaticFiles
+import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 app = FastAPI()
 
-# To store user information in memory.
-# WARNING: This information will be lost when the server stops/restarts
+# User credentials will be stored in this dictionary
 user_data = {}
 
 
@@ -17,30 +23,26 @@ class RegisterItem(BaseModel):
     authDomain: str
     databaseURL: str
     storageBucket: str
-    openai_key: str
 
 
 @app.post("/register")
 async def register(item: RegisterItem):
-    # Generate a unique user id
-    uid = str(uuid.uuid4())
-
-    # Initialize the Firebase app
-    user_data[uid] = {
-        "firebase": credentials.Certificate(
-            {
-                "apiKey": item.apiKey,
-                "authDomain": item.authDomain,
-                "databaseURL": item.databaseURL,
-                "storageBucket": item.storageBucket,
-            }
-        ),
-        "openai_key": item.openai_key,
+    # Firebase initialization with user-specific credentials
+    cred = credentials.Certificate(
+        {
+            "apiKey": item.apiKey,
+            "authDomain": item.authDomain,
+            "databaseURL": item.databaseURL,
+            "storageBucket": item.storageBucket,
+        }
+    )
+    firebase_app = initialize_app(cred, name=str(len(user_data)))
+    # Add the Firebase app and auth details to the user_data dictionary
+    user_data[str(len(user_data))] = {
+        "firebase_app": firebase_app,
+        "authDomain": item.authDomain,
     }
-
-    initialize_app(user_data[uid]["firebase"], name=uid)
-
-    return {"uid": uid}
+    return {"uid": str(len(user_data) - 1)}  # Return the user ID
 
 
 class ProcessItem(BaseModel):
@@ -50,14 +52,12 @@ class ProcessItem(BaseModel):
 
 @app.post("/process_request")
 async def process_request(item: ProcessItem):
-    # Get the user data using the provided uid
-    user = user_data.get(item.uid)
+    # Get the user's Firebase app from the user_data dictionary
+    firebase_app = user_data.get(item.uid, {}).get("firebase_app", None)
+    authDomain = user_data.get(item.uid, {}).get("authDomain", None)
 
-    if not user:
+    if not firebase_app or not authDomain:
         raise HTTPException(status_code=400, detail="Invalid uid")
-
-    # Set the OpenAI key for this user
-    openai.api_key = user["openai_key"]
 
     # Call OpenAI
     response = openai.Completion.create(
@@ -70,21 +70,75 @@ async def process_request(item: ProcessItem):
             "message": response.choices[0].text.strip(),
         },
         topic="updates",
+        app=firebase_app,  # Use the user-specific Firebase app
     )
 
     # Send the message asynchronously
-    asyncio.run(send_notification(message, item.uid))
+    asyncio.run(send_notification(message))
 
     return {"message": "Notification sent"}
 
 
-def send_notification(message, uid):
+def send_notification(message):
     # Send a message to the devices subscribed to the provided topic.
-    response = messaging.send(message, app=user_data[uid]["firebase"])
+    response = messaging.send(message)
     print("Successfully sent message:", response)
 
 
-if __name__ == "__main__":
-    import uvicorn
+def gradio_interface():
+    def register(apiKey, authDomain, databaseURL, storageBucket):
+        response = requests.post(
+            "http://localhost:8000/register",
+            json={
+                "apiKey": apiKey,
+                "authDomain": authDomain,
+                "databaseURL": databaseURL,
+                "storageBucket": storageBucket,
+            },
+        )
+        return response.json()
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    def process_request(uid, prompt):
+        response = requests.post(
+            "http://localhost:8000/process_request", json={"uid": uid, "prompt": prompt}
+        )
+        return response.json()
+
+    demo = gr.Interface(
+        fn=[register, process_request],
+        inputs=[
+            [
+                gr.inputs.Textbox(label="apiKey"),
+                gr.inputs.Textbox(label="authDomain"),
+                gr.inputs.Textbox(label="databaseURL"),
+                gr.inputs.Textbox(label="storageBucket"),
+            ],
+            [gr.inputs.Textbox(label="uid"), gr.inputs.Textbox(label="prompt")],
+        ],
+        outputs="json",
+        title="API Explorer",
+        description="Use this tool to make requests to the Register and Process Request APIs",
+    )
+    return demo
+
+
+def process_request_interface(uid, prompt):
+    item = ProcessItem(uid=uid, prompt=prompt)
+    response = process_request(item)
+    return response
+
+
+def get_gradle_interface():
+    return gr.Interface(
+        fn=process_request_interface,
+        inputs=[
+            gr.inputs.Textbox(label="UID", type="text"),
+            gr.inputs.Textbox(label="Prompt", type="text"),
+        ],
+        outputs="text",
+        title="OpenAI Text Generation",
+        description="Generate text using OpenAI's GPT-3 model.",
+    )
+
+
+app = gr.mount_gradio_app(app, get_gradle_interface(), path="/")
