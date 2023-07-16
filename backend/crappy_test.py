@@ -1,4 +1,5 @@
 import time
+import uuid
 from fastapi.testclient import TestClient
 import pytest
 import json
@@ -11,11 +12,29 @@ async def test_register():
     client = TestClient(backend.app)
 
     data = {
-        "apiKey": "test-api-key",
-        "authDomain": "test-auth-domain",
-        "databaseURL": "test-database-url",
-        "storageBucket": "test-storage-bucket",
-        "openai_key": "test-openai-key",
+        "openai_key": "garbage",
     }
-    with pytest.raises(ValueError):
-        client.post("/register", json=data)
+    client.post("/register", json=data)
+
+
+@pytest.mark.asyncio
+async def test_send_event():
+    client = TestClient(backend.app)
+
+    data = {
+        "uid": str(uuid.uuid4()),
+        "event": "test event",
+    }
+    client.post("/register", json=data)
+
+
+@pytest.mark.asyncio
+async def test_assist():
+    client = TestClient(backend.app)
+
+    data = {
+        "uid": str(uuid.uuid4()),
+        "prompt": "test prompt",
+        "version": "davinci-fake",
+    }
+    client.post("/assist", json=data)

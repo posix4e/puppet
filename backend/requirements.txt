@@ -8,7 +8,7 @@ pinecone-io
 pydantic
 python-dotenv
 swagger-ui-bundle
-
+sqlalchemy
 pytest-asyncio 
 pytest 
 requests
