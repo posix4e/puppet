@@ -1,54 +1,51 @@
 package com.ttt246.puppet
+
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.preference.PreferenceManager
 import android.provider.Settings
-import android.view.View
-import android.widget.TextView
+import android.webkit.WebView
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.messaging.FirebaseMessaging
-import java.io.File
-import java.io.IOException
+import com.eclipsesource.v8.V8
 
-
-@Suppress("DEPRECATION")
 class ChatterAct : AppCompatActivity() {
-    private var fcmToken: String = String()
-    private var uuid: String = String()
+    private lateinit var webView: WebView
 
-    @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Hide the status bar (system toolbar)
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
+        setContentView(R.layout.activity_main)
         supportActionBar?.hide()
-
-        initToken()
-        // on below line we are getting device id.
-        uuid = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         startActivity(intent)
 
+        val settingsButton: Button = findViewById(R.id.settingsButton)
+        webView = findViewById(R.id.webView)
+
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val serverUrl = sharedPreferences.getString("SERVER_URL", "https://default-url-if-not-set.com")
+        if (serverUrl != null) {
+            webView.loadUrl(serverUrl)
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = true
+        }
+
+        settingsButton.setOnClickListener {
+            val settingsIntent = Intent(this, SettingsActivity::class.java)
+            startActivity(settingsIntent)
+        }
     }
 
-    private fun initToken() {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                return@OnCompleteListener
-            }
-
-            fcmToken = task.result
-        })
-    }
-
-    fun getFCMToken(): String {
-        return this.fcmToken
-    }
-
-    fun getUUID(): String {
-        return this.uuid
+    @SuppressLint("SetJavaScriptEnabled")
+    override fun onResume() {
+        super.onResume()
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val serverUrl = sharedPreferences.getString("SERVER_URL", "https://default-url-if-not-set.com")
+        if (serverUrl != null) {
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = true
+            webView.loadUrl(serverUrl)
+        }
     }
 }

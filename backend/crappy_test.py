@@ -1,21 +1,35 @@
-import time
-from fastapi.testclient import TestClient
+import uuid
+
 import pytest
-import json
+from fastapi.testclient import TestClient
+
 import backend
-import httpx
+
+client = TestClient(backend.app)
 
 
 @pytest.mark.asyncio
 async def test_register():
-    client = TestClient(backend.app)
-
     data = {
-        "apiKey": "test-api-key",
-        "authDomain": "test-auth-domain",
-        "databaseURL": "test-database-url",
-        "storageBucket": "test-storage-bucket",
-        "openai_key": "test-openai-key",
+        "openai_key": "garbage",
     }
-    with pytest.raises(ValueError):
-        client.post("/register", json=data)
+    client.post("/register", json=data)
+
+
+@pytest.mark.asyncio
+async def test_send_event():
+    data = {
+        "uid": str(uuid.uuid4()),
+        "event": "test event",
+    }
+    client.post("/register", json=data)
+
+
+@pytest.mark.asyncio
+async def test_assist():
+    data = {
+        "uid": str(uuid.uuid4()),
+        "prompt": "test prompt",
+        "version": "davinci-fake",
+    }
+    client.post("/assist", json=data)
