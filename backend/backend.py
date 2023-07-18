@@ -207,7 +207,7 @@ async def get_history(uid: str):
     if commands and len(commands) > 0:
         try:
             with open(f"{uid}_events.txt", "r") as f:
-                events = f.read().split()
+                events = f.read().split(",")
         except FileNotFoundError:
             events = None
 
