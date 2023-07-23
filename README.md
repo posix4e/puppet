@@ -9,15 +9,14 @@ pinned: false
 license: mit
 ---
 
-Fun!
-
-## MVP
-- [ ] switch to only rpcing every minute 
-- [ ] Run commands on android
-- [x] Fix assist on android
-- [ ] Testing
-- [ ] Docs
+This is a (soon) 3 part system
+- puppet can recieve commands and execute them. 
+- backend which collects browser telemetry along with operating system telemetry at a fine grained level. Either android accesibility commands or web dom.
+- backend can also send commands for local LLMs to be executed on the puppet llm
+- There's a seperate client built on top of gradio included in puppet that we can access via our ios plugin which collects browser telemetry
 
 ## Todo Soon
 
-- [ ] Other clients (browser extension/watch)
+- Browser history interface
+- Better docs
+- Switching to github for issue planning
