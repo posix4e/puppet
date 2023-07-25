@@ -2,12 +2,14 @@ import json
 import uuid
 from datetime import datetime
 
-import gradio as gr
 import mistune
 import openai
 from dotenv import load_dotenv
+from easycompletion import openai_text_call
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.testclient import TestClient
+from gradio import Interface, TabbedInterface, components, mount_gradio_app
 from pydantic import BaseModel
 from pygments import highlight
 from pygments.formatters import html
@@ -17,13 +19,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.sql import insert, select, text
 from uvicorn import Config, Server
-from fastapi.middleware.gzip import GZipMiddleware
 
 LANGS = [
-    "text-davinci-002:100",
-    "text-davinci-003:1500",
-    "gpt-3.5-turbo:4000",
-    "gpt-4:6000",
+    "gpt-3.5-turbo",
+    "gpt-4",
 ]
 
 Base = declarative_base()
@@ -34,7 +33,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uid = Column(String, nullable=False)
-    openai_key = Column(String)
+    openai_key = Column(String, unique=True, nullable=False)
 
     def __repr__(self):
         return f"User(id={self.id}, uid={self.uid}"
@@ -46,7 +45,7 @@ class History(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     uid = Column(String, nullable=False)
     question = Column(String, nullable=False)
-    answer = Column(JSON, nullable=False)
+    answer = Column(String, nullable=False)
 
     def __repr__(self):
         return f"History(id={self.id}, uid={self.uid}, question={self.question}, answer={self.answer}"
@@ -135,39 +134,21 @@ class RegisterItem(BaseModel):
 @app.post("/register")
 async def register(item: RegisterItem):
     db: Session = SessionLocal()
-    new_user = User(uid=str(uuid.uuid4()), openai_key=item.openai_key)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"uid": new_user.uid}
+    existing_user = db.query(User).filter(User.openai_key == item.openai_key).first()
+    if existing_user:
+        return {"uid": existing_user.uid}  # return existing UUID
+    else:
+        new_user = User(uid=str(uuid.uuid4()), openai_key=item.openai_key)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"uid": new_user.uid}
 
 
 class AssistItem(BaseModel):
     uid: str
     prompt: str
     version: str
-
-
-def generate_quick_completion(prompt, model):
-    dropdrown = model.split(":")
-    engine = dropdrown[0]
-    max_tokens = int(dropdrown[1])
-    if "gpt" in model:
-        message = [{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=engine,
-            messages=message,
-            temperature=0.2,
-            max_tokens=max_tokens,
-            frequency_penalty=0.0,
-        )
-    elif "davinci" in model:
-        response = openai.Completion.create(
-            engine=engine, prompt=prompt, max_tokens=max_tokens
-        )
-    else:
-        raise Exception("Unknown model")
-    return response
 
 
 @app.post("/assist")
@@ -179,15 +160,13 @@ async def assist(item: AssistItem):
 
     # Call OpenAI
     openai.api_key = user.openai_key
-    response = generate_quick_completion(item.prompt, item.version)
+    response = openai_text_call(item.prompt, model=item.version)
 
     # Update the last time assist was called
     user.last_assist = datetime.now()
 
     # Store the history
-    new_history = History(
-        uid=item.uid, question=item.prompt, answer=json.loads(str(response))
-    )
+    new_history = History(uid=item.uid, question=item.prompt, answer=response["text"])
 
     db.add(new_history)
     db.commit()
@@ -228,7 +207,7 @@ def assist_interface(uid, prompt, gpt_version):
         "/assist",
         json={"uid": uid, "prompt": prompt, "version": gpt_version},
     )
-    return gradio_user_output_helper(response.text)
+    return generate_html_response_from_openai(response.text)
 
 
 def get_user_interface(uid):
@@ -248,51 +227,31 @@ class HighlightRenderer(mistune.HTMLRenderer):
         return "<pre><code>" + mistune.escape(code) + "</code></pre>"
 
 
-def gradio_user_output_helper(data):
+def generate_html_response_from_openai(openai_response):
     r"""
     This is used by the gradio to extract all of the user
     data and write it out as a giant json blob that can be easily diplayed.
-    >>> choices = [{'message': {'content': 'This is a test'}}]
-    >>> data = { 'id': '1', 'object': 'user', 'created': '2021-09-01', 'model': 'gpt-3', 'choices': choices}
-    >>> gradio_user_output_helper(json.dumps(data))
-    '<html><h2>ID: 1</h2><p>Object: user</p><p>Created: 2021-09-01</p><p>Model: gpt-3</p><h3>Choices:</h3><p>Text: <p>This is a test</p>\n</p></html>'
+    >>>
+    >>> data = {'text': 'This is a test'}
+    >>> generate_html_response_from_openai(json.dumps(data))
+    '<html><p>This is a test</p>\n</html>'
     """
-    html_output = "<html>"
-    json_data = json.loads(data)
 
-    id = json_data["id"]
-    object = json_data["object"]
-    created = json_data["created"]
-    model = json_data["model"]
-    choices = json_data["choices"]
-
-    html_output += f"<h2>ID: {id}</h2>"
-    html_output += f"<p>Object: {object}</p>"
-    html_output += f"<p>Created: {created}</p>"
-    html_output += f"<p>Model: {model}</p>"
-
-    html_output += "<h3>Choices:</h3>"
-    if "davinci" in model:
-        for choice in choices:
-            text = choice["text"]
-            html_output += f"<p>Text: {text}</p>"
-    elif "gpt" in model:
-        for choice in choices:
-            markdown = mistune.create_markdown(renderer=HighlightRenderer())
-            text = markdown(choice["message"]["content"])
-            html_output += f"<p>Text: {text}</p>"
-    html_output += "</html>"
-    return html_output
+    openai_response = json.loads(openai_response)
+    openai_response = openai_response["text"]
+    markdown = mistune.create_markdown(renderer=HighlightRenderer())
+    openai_response = markdown(openai_response)
+    return f"<html>{openai_response}</html>"
 
 
 def get_assist_interface():
-    gpt_version_dropdown = gr.components.Dropdown(label="GPT Version", choices=LANGS)
+    gpt_version_dropdown = components.Dropdown(label="GPT Version", choices=LANGS)
 
-    return gr.Interface(
+    return Interface(
         fn=assist_interface,
         inputs=[
-            gr.components.Textbox(label="UID", type="text"),
-            gr.components.Textbox(label="Prompt", type="text"),
+            components.Textbox(label="UID", type="text"),
+            components.Textbox(label="Prompt", type="text"),
             gpt_version_dropdown,
         ],
         outputs="html",
@@ -302,7 +261,7 @@ def get_assist_interface():
 
 
 def get_db_interface():
-    return gr.Interface(
+    return Interface(
         fn=get_user_interface,
         inputs="text",
         outputs="text",
@@ -321,9 +280,9 @@ def register_interface(openai_key):
 
 
 def get_register_interface():
-    return gr.Interface(
+    return Interface(
         fn=register_interface,
-        inputs=[gr.components.Textbox(label="OpenAI Key", type="text")],
+        inputs=[components.Textbox(label="OpenAI Key", type="text")],
         outputs="json",
         title="Register New User",
         description="Register a new user by entering an OpenAI key.",
@@ -337,9 +296,9 @@ def get_history_interface(uid):
 
 
 def get_history_gradio_interface():
-    return gr.Interface(
+    return Interface(
         fn=get_history_interface,
-        inputs=[gr.components.Textbox(label="UID", type="text")],
+        inputs=[components.Textbox(label="UID", type="text")],
         outputs="json",
         title="Get User History",
         description="Get the history of questions and answers for a given user.",
@@ -356,11 +315,11 @@ def add_command_interface(uid, command):
 
 
 def get_add_command_interface():
-    return gr.Interface(
+    return Interface(
         fn=add_command_interface,
         inputs=[
-            gr.components.Textbox(label="UID", type="text"),
-            gr.components.Textbox(label="Command", type="text"),
+            components.Textbox(label="UID", type="text"),
+            components.Textbox(label="Command", type="text"),
         ],
         outputs="json",
         title="Add Command",
@@ -368,9 +327,9 @@ def get_add_command_interface():
     )
 
 
-app = gr.mount_gradio_app(
+app = mount_gradio_app(
     app,
-    gr.TabbedInterface(
+    TabbedInterface(
         [
             get_assist_interface(),
             get_db_interface(),
