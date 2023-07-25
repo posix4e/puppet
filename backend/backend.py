@@ -228,7 +228,7 @@ def assist_interface(uid, prompt, gpt_version):
         "/assist",
         json={"uid": uid, "prompt": prompt, "version": gpt_version},
     )
-    return display_json(response.text)
+    return gradio_user_output_helper(response.text)
 
 
 def get_user_interface(uid):
@@ -248,7 +248,15 @@ class HighlightRenderer(mistune.HTMLRenderer):
         return "<pre><code>" + mistune.escape(code) + "</code></pre>"
 
 
-def display_json(data):
+def gradio_user_output_helper(data):
+    r"""
+    This is used by the gradio to extract all of the user
+    data and write it out as a giant json blob that can be easily diplayed.
+    >>> choices = [{'message': {'content': 'This is a test'}}]
+    >>> data = { 'id': '1', 'object': 'user', 'created': '2021-09-01', 'model': 'gpt-3', 'choices': choices}
+    >>> gradio_user_output_helper(json.dumps(data))
+    '<html><h2>ID: 1</h2><p>Object: user</p><p>Created: 2021-09-01</p><p>Model: gpt-3</p><h3>Choices:</h3><p>Text: <p>This is a test</p>\n</p></html>'
+    """
     html_output = "<html>"
     json_data = json.loads(data)
 
@@ -270,27 +278,21 @@ def display_json(data):
             html_output += f"<p>Text: {text}</p>"
     elif "gpt" in model:
         for choice in choices:
-            try:
-                markdown = mistune.create_markdown(renderer=HighlightRenderer())
-                text = markdown(choice["message"]["content"])
-                html_output += f"<p>Text: {text}</p>"
-            except:
-                markdown = mistune.create_markdown()
-                text = markdown(choice["message"]["content"])
-                html_output += f"<p>Text: {text}</p>"
-
+            markdown = mistune.create_markdown(renderer=HighlightRenderer())
+            text = markdown(choice["message"]["content"])
+            html_output += f"<p>Text: {text}</p>"
     html_output += "</html>"
     return html_output
 
 
 def get_assist_interface():
-    gpt_version_dropdown = gr.inputs.Dropdown(label="GPT Version", choices=LANGS)
+    gpt_version_dropdown = gr.components.Dropdown(label="GPT Version", choices=LANGS)
 
     return gr.Interface(
         fn=assist_interface,
         inputs=[
-            gr.inputs.Textbox(label="UID", type="text"),
-            gr.inputs.Textbox(label="Prompt", type="text"),
+            gr.components.Textbox(label="UID", type="text"),
+            gr.components.Textbox(label="Prompt", type="text"),
             gpt_version_dropdown,
         ],
         outputs="html",
@@ -321,7 +323,7 @@ def register_interface(openai_key):
 def get_register_interface():
     return gr.Interface(
         fn=register_interface,
-        inputs=[gr.inputs.Textbox(label="OpenAI Key", type="text")],
+        inputs=[gr.components.Textbox(label="OpenAI Key", type="text")],
         outputs="json",
         title="Register New User",
         description="Register a new user by entering an OpenAI key.",
@@ -337,7 +339,7 @@ def get_history_interface(uid):
 def get_history_gradio_interface():
     return gr.Interface(
         fn=get_history_interface,
-        inputs=[gr.inputs.Textbox(label="UID", type="text")],
+        inputs=[gr.components.Textbox(label="UID", type="text")],
         outputs="json",
         title="Get User History",
         description="Get the history of questions and answers for a given user.",
@@ -357,8 +359,8 @@ def get_add_command_interface():
     return gr.Interface(
         fn=add_command_interface,
         inputs=[
-            gr.inputs.Textbox(label="UID", type="text"),
-            gr.inputs.Textbox(label="Command", type="text"),
+            gr.components.Textbox(label="UID", type="text"),
+            gr.components.Textbox(label="Command", type="text"),
         ],
         outputs="json",
         title="Add Command",

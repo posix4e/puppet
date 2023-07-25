@@ -19,5 +19,7 @@ jobs:
           cache: 'pip'
       - name: pip Install
         run: pip install -r requirements.txt
-      - name: Test
+      - name: UnitTests
+        run: python -m doctest -v backend.py
+      - name: EndToEnd Test
         run: pytest
