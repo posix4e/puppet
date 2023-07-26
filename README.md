@@ -1,3 +1,5 @@
+This attempts to recreate https://github.com/nat/natbot/blob/main/natbot.py but for android instead of the web. It uses acceesibility to see, and Android Intents to steer. Sometimes it needs the users' help because of android's security model. 
+
 ---
 title: puppet 
 colorTo: indigo
