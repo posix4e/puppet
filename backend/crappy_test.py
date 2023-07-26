@@ -9,11 +9,33 @@ client = TestClient(backend.app)
 
 
 @pytest.mark.asyncio
-async def test_register():
-    data = {
-        "openai_key": "garbage",
-    }
-    client.post("/register", json=data)
+async def test_register_new_key():
+    data = {"openai_key": "new_key"}
+    response = client.post("/register", json=data)
+    assert response.status_code == 200
+    assert "uid" in response.json()
+    uid = response.json()["uid"]
+
+    data = {"openai_key": "new_key"}
+    response = client.post("/register", json=data)
+    assert response.status_code == 200
+    assert "uid" in response.json()
+    assert response.json()["uid"] == uid
+
+
+@pytest.mark.asyncio
+async def test_register_existing_key():
+    data = {"openai_key": "existing_key"}
+    response = client.post("/register", json=data)
+    assert response.status_code == 200
+    assert "uid" in response.json()
+    uid = response.json()["uid"]
+
+    data = {"openai_key": "existing_key"}
+    response = client.post("/register", json=data)
+    assert response.status_code == 200
+    assert "uid" in response.json()
+    assert response.json()["uid"] == uid
 
 
 @pytest.mark.asyncio

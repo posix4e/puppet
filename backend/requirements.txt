@@ -1,10 +1,7 @@
-fastapi
-firebase-admin
-flask
-gradio >= 3.36.1
-httpx
-openai
-pinecone-io
+fastapi == 0.99.1
+easycompletion
+gradio
+openai >= 0.27.8
 pydantic
 pygments
 python-dotenv
@@ -12,7 +9,7 @@ mistune
 sqlalchemy
 swagger-ui-bundle
 
+black
 pytest-asyncio 
 pytest 
 requests
-

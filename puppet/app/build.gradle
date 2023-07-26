@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace 'com.ttt246.puppet'
-    compileSdkVersion 34
+    compileSdkVersion 33
     kotlinOptions {
         jvmTarget = "1.8"
     }
