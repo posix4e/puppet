@@ -11,14 +11,8 @@ license: mit
 This attempts to recreate https://github.com/nat/natbot/blob/main/natbot.py but for android instead of the web. It uses acceesibility to see, and Android Intents to steer. Sometimes it needs the users' help because of android's security model. 
 
 
-This is a (soon) 3 part system
+This is a 3 part system
 - puppet can recieve commands and execute them. 
 - backend which collects browser telemetry along with operating system telemetry at a fine grained level. Either android accesibility commands or web dom.
-- backend can also send commands for local LLMs to be executed on the puppet llm
-- There's a seperate client built on top of gradio included in puppet that we can access via our ios plugin which collects browser telemetry
-
-## Todo Soon
-
-- Browser history interface
-- Better docs
-- Switching to github for issue planning
+- client can be web but we also have a browser extension. Currently on for ios, but soon on all platforms.
+- Here's my puppet backend https://posix4e-puppet.hf.space
