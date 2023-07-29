@@ -20,7 +20,7 @@ import java.util.LinkedList
 import java.util.Queue
 
 
-class PuppetAS : AccessibilityService() {
+open class PuppetAS : AccessibilityService() {
     private fun getServerUrl(): String =
         PreferenceManager.getDefaultSharedPreferences(this).getString("SERVER_URL", "") ?: ""
 
@@ -101,7 +101,7 @@ class PuppetAS : AccessibilityService() {
         }
     }
 
-    private fun processCommands(commands: List<String>) {
+     fun processCommands(commands: List<String>) {
         commands.forEach { command ->
             when {
                 isIntentCommand(command) -> executeIntentCommand(command)
@@ -111,15 +111,15 @@ class PuppetAS : AccessibilityService() {
         }
     }
 
-    private fun isIntentCommand(command: String): Boolean {
+    fun isIntentCommand(command: String): Boolean {
         return command.startsWith("intent:")
     }
 
-    private fun isAccCommand(command: String): Boolean {
+     fun isAccCommand(command: String): Boolean {
         return command.startsWith("acc:")
     }
 
-    private fun executeAccCommand(command: String) {
+     fun executeAccCommand(command: String) {
         val accCommand = command.removePrefix("acc:")
         Log.i("PuppetAS", "Executing Acc command: $accCommand")
 
@@ -245,7 +245,7 @@ class PuppetAS : AccessibilityService() {
         }
     }
 
-    private fun executeIntentCommand(command: String) {
+    fun executeIntentCommand(command: String) {
         val intentCommand = command.removePrefix("intent:")
 
         Log.i("PuppetAS", "Executing Intent command: $intentCommand")

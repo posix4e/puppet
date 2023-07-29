@@ -8,7 +8,6 @@ import android.provider.Settings
 import android.webkit.WebView
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import com.eclipsesource.v8.V8
 
 class ChatterAct : AppCompatActivity() {
     private lateinit var webView: WebView
