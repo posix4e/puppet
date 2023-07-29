@@ -17,7 +17,6 @@ from pygments.lexers import get_lexer_by_name
 from sqlalchemy import JSON, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.sql import insert, select, text
 from uvicorn import Config, Server
 
 LANGS = [
@@ -39,8 +38,8 @@ class User(Base):
         return f"User(id={self.id}, uid={self.uid}"
 
 
-class History(Base):
-    __tablename__ = "history"
+class AndroidHistory(Base):
+    __tablename__ = "android_history"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uid = Column(String, nullable=False)
@@ -48,7 +47,19 @@ class History(Base):
     answer = Column(String, nullable=False)
 
     def __repr__(self):
-        return f"History(id={self.id}, uid={self.uid}, question={self.question}, answer={self.answer}"
+        return f"AndroidHistory(question={self.question}, answer={self.answer}"
+
+
+class BrowserHistory(Base):
+    __tablename__ = "browser_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    machineid = Column(String, nullable=False)
+    uid = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+
+    def __repr__(self):
+        return f"BrowserHistory(machineid={self.machineid}, url={self.url}"
 
 
 # Add a new table to store the commands
@@ -74,10 +85,30 @@ app = FastAPI(debug=True)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-# Add a new API endpoint to add commands to the queue
+class RegisterItem(BaseModel):
+    openai_key: str
+
+
 class CommandItem(BaseModel):
     uid: str
     command: str
+
+
+class EventItem(BaseModel):
+    uid: str
+    event: str
+
+
+class AssistItem(BaseModel):
+    uid: str
+    prompt: str
+    version: str
+
+
+class SaveURLItem(BaseModel):
+    uid: str
+    machineid: str
+    url: str
 
 
 @app.post("/add_command")
@@ -88,11 +119,6 @@ async def add_command(item: CommandItem):
     db.commit()
     db.refresh(new_command)
     return {"message": "Command added"}
-
-
-class EventItem(BaseModel):
-    uid: str
-    event: str
 
 
 @app.post("/send_event")
@@ -127,10 +153,6 @@ async def send_event(item: EventItem):
     }
 
 
-class RegisterItem(BaseModel):
-    openai_key: str
-
-
 @app.post("/register")
 async def register(item: RegisterItem):
     db: Session = SessionLocal()
@@ -143,12 +165,6 @@ async def register(item: RegisterItem):
         db.commit()
         db.refresh(new_user)
         return {"uid": new_user.uid}
-
-
-class AssistItem(BaseModel):
-    uid: str
-    prompt: str
-    version: str
 
 
 @app.post("/assist")
@@ -166,8 +182,9 @@ async def assist(item: AssistItem):
     user.last_assist = datetime.now()
 
     # Store the history
-    new_history = History(uid=item.uid, question=item.prompt, answer=response["text"])
-
+    new_history = AndroidHistory(
+        uid=item.uid, question=item.prompt, answer=response["text"]
+    )
     db.add(new_history)
     db.commit()
 
@@ -177,27 +194,34 @@ async def assist(item: AssistItem):
 @app.get("/get_history/{uid}")
 async def get_history(uid: str):
     db: Session = SessionLocal()
-    history = db.query(History).filter(History.uid == uid).all()
+    history = db.query(BrowserHistory).filter(BrowserHistory.uid == uid).all()
+    browser_history = db.query(AndroidHistory).filter(AndroidHistory.uid == uid).all()
     commands = db.query(Command).filter(Command.uid == uid).all()
-    if not history:
-        raise HTTPException(status_code=400, detail="No history found for this uid")
-    ret = {"history": [h.__dict__ for h in history]}
 
-    if commands and len(commands) > 0:
-        try:
-            with open(f"{uid}_events.txt", "r") as f:
-                events = f.read().split(",")
-        except FileNotFoundError:
-            events = None
+    try:
+        with open(f"{uid}_events.txt", "r") as f:
+            events = f.read().split(",")
+    except FileNotFoundError:
+        events = ""
 
-        return {
-            "events": events,
-            "history": [h.__dict__ for h in history],
-            "commands": [c.__dict__ for c in commands],
-        }
+    return {
+        "events": events,
+        "history": [h.__dict__ for h in history],
+        "browser_history": [h.__dict__ for h in browser_history],
+        "commands": [c.__dict__ for c in commands],
+    }
 
-    else:
-        return {"history": [h.__dict__ for h in history]}
+
+@app.post("/saveurl")
+async def saveurl(item: SaveURLItem):
+    db: Session = SessionLocal()
+    new_browser_history = BrowserHistory(
+        uid=item.uid, machineid=item.machineid, url=item.url
+    )
+    db.add(new_browser_history)
+    db.commit()
+    db.refresh(new_browser_history)
+    return {"message": "Browser history saved"}
 
 
 def assist_interface(uid, prompt, gpt_version):
@@ -270,6 +294,8 @@ def get_db_interface():
     )
 
 
+## The register interface uses this weird syntax to make sure we don't copy and
+## paste quotes in the uid when we output it
 def register_interface(openai_key):
     client = TestClient(app)
     response = client.post(
@@ -280,10 +306,17 @@ def register_interface(openai_key):
 
 
 def get_register_interface():
+    def wrapper(openai_key):
+        result = register_interface(openai_key)
+        return f"""<p id='uid'>{result["uid"]}</p>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('uid').innerText)">
+        Copy to clipboard
+        </button>"""
+
     return Interface(
-        fn=register_interface,
+        fn=wrapper,
         inputs=[components.Textbox(label="OpenAI Key", type="text")],
-        outputs="json",
+        outputs=components.HTML(),
         title="Register New User",
         description="Register a new user by entering an OpenAI key.",
     )
