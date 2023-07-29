@@ -176,16 +176,15 @@ async def assist(item: AssistItem):
 
     # Call OpenAI
     openai.api_key = user.openai_key
-    response = generate_quick_completion(item.prompt, item.version)
+    response = openai_text_call(item.prompt, model=item.version)
 
     # Update the last time assist was called
     user.last_assist = datetime.now()
 
     # Store the history
     new_history = AndroidHistory(
-        uid=item.uid, question=item.prompt, answer=json.loads(str(response))
+        uid=item.uid, question=item.prompt, answer=response["text"]
     )
-
     db.add(new_history)
     db.commit()
 
@@ -223,24 +222,6 @@ async def saveurl(item: SaveURLItem):
     db.commit()
     db.refresh(new_browser_history)
     return {"message": "Browser history saved"}
-
-
-def generate_quick_completion(prompt, model):
-    dropdrown = model.split(":")
-    engine = dropdrown[0]
-    max_tokens = int(dropdrown[1])
-    if "gpt" in model:
-        message = [{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=engine,
-            messages=message,
-            temperature=0.2,
-            max_tokens=max_tokens,
-            frequency_penalty=0.0,
-        )
-    else:
-        raise Exception("Unknown model")
-    return response
 
 
 def assist_interface(uid, prompt, gpt_version):
@@ -313,6 +294,8 @@ def get_db_interface():
     )
 
 
+## The register interface uses this weird syntax to make sure we don't copy and
+## paste quotes in the uid when we output it
 def register_interface(openai_key):
     client = TestClient(app)
     response = client.post(
@@ -323,10 +306,17 @@ def register_interface(openai_key):
 
 
 def get_register_interface():
+    def wrapper(openai_key):
+        result = register_interface(openai_key)
+        return f"""<p id='uid'>{result["uid"]}</p>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('uid').innerText)">
+        Copy to clipboard
+        </button>"""
+
     return Interface(
-        fn=register_interface,
+        fn=wrapper,
         inputs=[components.Textbox(label="OpenAI Key", type="text")],
-        outputs="json",
+        outputs=components.HTML(),
         title="Register New User",
         description="Register a new user by entering an OpenAI key.",
     )
