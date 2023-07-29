@@ -15,4 +15,7 @@ This is a 3 part system
 - puppet can recieve commands and execute them. 
 - backend which collects browser telemetry along with operating system telemetry at a fine grained level. Either android accesibility commands or web dom.
 - client can be web but we also have a browser extension. Currently on for ios, but soon on all platforms.
+# Deployment
 - Here's my puppet backend https://posix4e-puppet.hf.space
+# Planning 
+We are using the github projects and issues features.
