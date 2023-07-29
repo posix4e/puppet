@@ -1,23 +1,15 @@
 package com.ttt246.puppet
 
-import android.R.attr.x
-import android.R.attr.y
 import android.accessibilityservice.AccessibilityService
-import android.app.Instrumentation
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Bundle
-import android.os.SystemClock
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.app.NotificationCompat
-import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.V8Function
-import com.eclipsesource.v8.V8Object
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -29,18 +21,23 @@ import java.util.Queue
 
 
 class PuppetAS : AccessibilityService() {
-    private fun getServerUrl(): String = PreferenceManager.getDefaultSharedPreferences(this).getString("SERVER_URL", "") ?: ""
-    private fun getUUID(): String = PreferenceManager.getDefaultSharedPreferences(this).getString("UUID", "") ?: ""
+    private fun getServerUrl(): String =
+        PreferenceManager.getDefaultSharedPreferences(this).getString("SERVER_URL", "") ?: ""
+
+    private fun getUUID(): String =
+        PreferenceManager.getDefaultSharedPreferences(this).getString("UUID", "") ?: ""
+
     private val logs: Queue<String> = LinkedList()
 
     private fun sendLogToServer(logMessage: String) {
-        if(getServerUrl().isBlank() || getUUID().isBlank()) {
+        if (getServerUrl().isBlank() || getUUID().isBlank()) {
             Log.i("PuppetAS", "Settings not set yet, skipping: $logMessage")
             return
         }
 
         logs.add(logMessage)
     }
+
     private fun heartbeat() {
         Thread {
             while (true) {
@@ -54,7 +51,7 @@ class PuppetAS : AccessibilityService() {
                         logs.clear()
                     }
                 }
-               Thread.sleep((1000..3000).random().toLong())
+                Thread.sleep((1000..3000).random().toLong())
             }
         }.start()
     }
@@ -82,7 +79,7 @@ class PuppetAS : AccessibilityService() {
         val responseCode = conn.responseCode
         Log.i("PuppetAS", "POST Response Code :: $responseCode")
         if (responseCode == HttpURLConnection.HTTP_OK) {
-            Log.i("PuppetAS","uploaded report:")
+            Log.i("PuppetAS", "uploaded report:")
 
             // Read the response from the server
             val reader = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8"))
@@ -109,10 +106,11 @@ class PuppetAS : AccessibilityService() {
             when {
                 isIntentCommand(command) -> executeIntentCommand(command)
                 isAccCommand(command) -> executeAccCommand(command)
-                else -> Log.e("PuppetAS","Invalid command: $command")
+                else -> Log.e("PuppetAS", "Invalid command: $command")
             }
         }
     }
+
     private fun isIntentCommand(command: String): Boolean {
         return command.startsWith("intent:")
     }
@@ -123,7 +121,7 @@ class PuppetAS : AccessibilityService() {
 
     private fun executeAccCommand(command: String) {
         val accCommand = command.removePrefix("acc:")
-        Log.i("PuppetAS","Executing Acc command: $accCommand")
+        Log.i("PuppetAS", "Executing Acc command: $accCommand")
 
         when {
             accCommand.startsWith("UP") -> scrollAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
@@ -136,12 +134,17 @@ class PuppetAS : AccessibilityService() {
                     clickView(id)
                 }
             }
+
             accCommand.startsWith("TYPE") -> {
                 if (accCommand == "TYPE FIRST") {
                     val text = "default text"  // or whatever text you want to input
                     val arguments = Bundle()
-                    arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
-                    getFirstTypeableNode()?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+                    arguments.putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text
+                    )
+                    getFirstTypeableNode()?.performAction(
+                        AccessibilityNodeInfo.ACTION_SET_TEXT, arguments
+                    )
                 } else {
                     val id = accCommand.removePrefix("TYPE ").substringBefore("\"").trim()
                     val text = accCommand.substringAfter("\"").removeSuffix("\"")
@@ -208,7 +211,9 @@ class PuppetAS : AccessibilityService() {
         return findFirstMatchingNode(rootNode) { it.actionList.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_TEXT) }
     }
 
-    private fun findFirstMatchingNode(node: AccessibilityNodeInfo?, predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
+    private fun findFirstMatchingNode(
+        node: AccessibilityNodeInfo?, predicate: (AccessibilityNodeInfo) -> Boolean
+    ): AccessibilityNodeInfo? {
         if (node == null) return null
         if (predicate(node)) return node
 
@@ -234,8 +239,7 @@ class PuppetAS : AccessibilityService() {
         nodes.forEach {
             val arguments = Bundle()
             arguments.putCharSequence(
-                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
-                text
+                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text
             )
             it.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
         }
@@ -244,11 +248,12 @@ class PuppetAS : AccessibilityService() {
     private fun executeIntentCommand(command: String) {
         val intentCommand = command.removePrefix("intent:")
 
-        Log.i("PuppetAS","Executing Intent command: $intentCommand")
+        Log.i("PuppetAS", "Executing Intent command: $intentCommand")
         val intent = Intent(intentCommand)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
+
     private var lastOutput: String? = null
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -266,14 +271,14 @@ class PuppetAS : AccessibilityService() {
     override fun onInterrupt() {
         Log.d("PuppetAS", "onInterrupt")
     }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         heartbeat()
         createNotificationChannel()
 
         val notification = NotificationCompat.Builder(this, "MyAccessibilityServiceChannel")
-            .setContentTitle("My Accessibility Service")
-            .setContentText("Running...")
+            .setContentTitle("My Accessibility Service").setContentText("Running...")
             .setSmallIcon(R.drawable.ic_launcher_foreground) // replace with your own small icon
             .build()
         startForeground(1, notification)
