@@ -15,9 +15,9 @@ I was inspired by https://github.com/nat/natbot/blob/main/natbot.py, but this is
 
 
 This is a 3 part system
-- puppet can recieve commands and execute them. 
-- backend which collects browser telemetry along with operating system telemetry at a fine grained level. Either android accesibility commands or web dom.
-- client (earth) can be web but we also have a browser extension. Currently on for ios, but soon on all platforms.
+- [puppet](puppet/README.md) The android app
+- [backend](backend/README.md) A simple python backend
+- [client](earth/README.md) A browser extension
 # Deployment
 - Here's my puppet backend https://posix4e-puppet.hf.space, you can push the repo to your own huggingspace to deploy it easily
 - Check out the most recently released apk to try out the puppet without compiling code
