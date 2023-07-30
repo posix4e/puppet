@@ -1,7 +1,6 @@
 # Backend for the puppet
 
-
-	This servers receives everything going on on the puppet. It can send requests to the puppet to do action. it uses openai as a llm currents
+This is a Python-based application that uses FastAPI and OpenAI's GPT-4 model to provide a backend for puppet. It can receive telemetry from the puppet client. It can control the puppet and it provides its own quick webclient.
 
 # dev
 
