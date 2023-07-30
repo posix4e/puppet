@@ -38,10 +38,6 @@ Puppet is an Android app that allows users to automate and control various actio
 
 This app is intended for educational and testing purposes only. The developers are not responsible for any misuse or damage caused by the app. Use it responsibly and in compliance with all applicable laws and regulations.
 
-## Support
-
-If you encounter any issues or have questions related to the Puppet app, please contact our support team at `support@puppetapp.com`.
-
 ## Credits
 
 Puppet app is developed by TTT246.
