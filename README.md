@@ -8,7 +8,10 @@ python_version: 3.11.2
 pinned: false
 license: mit
 ---
-This attempts to recreate https://github.com/nat/natbot/blob/main/natbot.py but for android instead of the web. It uses acceesibility to see, and Android Intents to steer. Sometimes it needs the users' help because of android's security model. 
+Drive android with GPT
+
+
+I was inspired by https://github.com/nat/natbot/blob/main/natbot.py, but this is for android instead of the web. It uses acceesibility to see, and additionally Android Intents to steer. Sometimes it needs the users' help because of android's security model. 
 
 
 This is a 3 part system
