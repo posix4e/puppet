@@ -1,8 +1,15 @@
 # Puppet Android App Readme
-
+Checkout
+- https://github.com/posix4e/puppet/blob/main/.github/workflows/android.yml
+To understand tests or
+- https://github.com/posix4e/puppet/blob/main/.github/workflows/release_ci.yml
+To understand how to build an apk. This is where our releases are generated
 ## Description
 
 Puppet is an Android app that allows users to automate and control various actions on their device using an Accessibility Service. The app is designed to interact with the device's user interface, perform clicks, scroll, type, and execute custom intents based on the commands received from a remote server. Puppet is useful for automating repetitive tasks, testing applications, and more.
+
+## Development
+
 
 ## Features
 
