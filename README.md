@@ -19,6 +19,7 @@ This is a 3 part system
 - backend which collects browser telemetry along with operating system telemetry at a fine grained level. Either android accesibility commands or web dom.
 - client (earth) can be web but we also have a browser extension. Currently on for ios, but soon on all platforms.
 # Deployment
-- Here's my puppet backend https://posix4e-puppet.hf.space
+- Here's my puppet backend https://posix4e-puppet.hf.space, you can push the repo to your own huggingspace to deploy it easily
+- Check out the most recently released apk to try out the puppet without compiling code
 # Planning 
 We are using the github projects and issues features.
