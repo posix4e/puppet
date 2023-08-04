@@ -1,0 +1,29 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    paths:
+      - "puppet/**"
+    branches: [ "main" ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2_tests 
+    env:
+      SAUCE_USERNAME : ${{ secrets.SAUCE_USERNAME }}
+      SAUCE_ACCESS_KEY : ${{ secrets.SAUCE_ACCESS_KEY }}
+      TEST_UUID : ${{ secrets.TEST_UUID }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements.txt
+      - run: python test_sauce_labs.py
