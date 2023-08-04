@@ -1,0 +1,30 @@
+name: Run E2E Tests
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        cd e2e_tests
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run Tests
+      env:
+        SAUCE_USERNAME : ${{ secrets.SAUCE_USERNAME }}
+        SAUCE_ACCESS_KEY : ${{ secrets.SAUCE_ACCESS_KEY }}
+        TEST_UUID : ${{ secrets.TEST_UUID }}
+      run: |
+        python test_sauce_labs.py
