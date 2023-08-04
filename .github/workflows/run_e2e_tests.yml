@@ -27,4 +27,5 @@ jobs:
         SAUCE_ACCESS_KEY : ${{ secrets.SAUCE_ACCESS_KEY }}
         TEST_UUID : ${{ secrets.TEST_UUID }}
       run: |
+        cd e2e_tests
         python test_sauce_labs.py
