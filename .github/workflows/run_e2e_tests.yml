@@ -7,26 +7,22 @@ on:
   workflow_dispatch:
   
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    environment: DEV
-    
+  test:
+    defaults:
+      run:
+        working-directory: e2e_tests
+    runs-on: ubuntu-latest    
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        cd e2e_tests
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run Tests
-      env:
-        SAUCE_USERNAME : ${{ secrets.SAUCE_USERNAME }}
-        SAUCE_ACCESS_KEY : ${{ secrets.SAUCE_ACCESS_KEY }}
-        TEST_UUID : ${{ secrets.TEST_UUID }}
-      run: |
-        cd e2e_tests
-        python test_sauce_labs.py
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.4'
+          cache: 'pip'
+      - name: pip Install
+        run: pip install -r requirements.txt
+      - name: Run Tests
+        run: python test_sauce_labs.py
+        env: 
+          SAUCE_ACCESS_KEY: '${{ secrets.SAUCE_ACCESS_KEY}}'
+          SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
+          TEST_UUID: '${{ secrets.TEST_UUID}}'
