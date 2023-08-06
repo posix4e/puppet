@@ -1,8 +1,8 @@
 # Python/Pytest
-from contextlib import contextmanager
+import os
 import time
 import unittest
-import os
+from contextlib import contextmanager
 
 from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy
@@ -110,8 +110,6 @@ def enable_privacy_settings(driver: WebDriver):
 
 class TestAppium(unittest.TestCase):
     def test_tab_4(self):
-        import time
-
         # Usage of the context manager ensures the driver session is closed properly
         # after the test completes. Otherwise, make sure to call `driver.quit()` on teardown.
         with android_driver({}) as driver:
