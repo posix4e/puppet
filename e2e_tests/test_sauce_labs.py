@@ -111,7 +111,7 @@ def enable_privacy_settings(driver: WebDriver):
 class TestAppium(unittest.TestCase):
     def test_tab_4(self):
         import time
-
+        print("I'm going to print out some secrets and see if code reviewer complains"+SAUCE_ACCESS_KEY)
         # Usage of the context manager ensures the driver session is closed properly
         # after the test completes. Otherwise, make sure to call `driver.quit()` on teardown.
         with android_driver({}) as driver:
