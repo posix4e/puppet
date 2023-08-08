@@ -16,3 +16,5 @@ For local machine, an appium server, android emulator and Java SDK is required.
 `pip install -r requirements.txt`
 
 `python test_sauce_labs.py`
+
+While running locally, you can create a .env file inside e2e_tests folder and place your environment variables.
