@@ -82,7 +82,7 @@ def save_server_settings(driver: WebDriver):
     )
     element.send_keys(TEST_UUID)
     element = driver.find_element(
-        by=AppiumBy.ID, value="com.ttt246.puppet:id/saveButton"
+        by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/saveButton"
     )
     element.click()
 
@@ -125,7 +125,7 @@ def enable_privacy_settings(driver: WebDriver):
         secondary_checkbox.click()
 
     # driver.start_activity(APP_PACKAGE_NAME, APP_ACTIVITY_NAME)
-    # driver.activate_app("com.ttt246.puppet")
+    # driver.activate_app(f"{APP_PACKAGE_NAME}")
     # These sleeps are harsh, however are now needed till will fix the activity which brings up settings by default
     # Once thats fixed, we can activate the app back it should resume as is, without the back button
 
