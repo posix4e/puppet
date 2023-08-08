@@ -8,6 +8,7 @@ from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.remote.webdriver import WebDriver
 from dotenv import load_dotenv
+from utils import wait_for_element, find_and_click
 
 load_dotenv()
 
@@ -56,7 +57,6 @@ def create_android_driver(sauce_labs=False):
     else:
         connection_url = APPIUM_SERVER_URL
 
-
     return webdriver.Remote(connection_url, capabilities)
 
 
@@ -69,10 +69,11 @@ def android_driver(options):
 
 
 def save_server_settings(driver: WebDriver):
-    element = driver.find_element(
-        by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/settingsButton"
+    element = find_and_click(
+        driver,
+        by_selector=AppiumBy.ID,
+        selector_value=f"{APP_PACKAGE_NAME}:id/settingsButton",
     )
-    element.click()
     element = driver.find_element(
         by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/serverUrlEditText"
     )
@@ -81,31 +82,19 @@ def save_server_settings(driver: WebDriver):
         by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/uuidEditText"
     )
     element.send_keys(TEST_UUID)
-    element = driver.find_element(
-        by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/saveButton"
+    element = find_and_click(
+        driver,
+        by_selector=AppiumBy.ID,
+        selector_value=f"{APP_PACKAGE_NAME}:id/saveButton",
     )
-    element.click()
-
-
-def wait_for_element(
-    driver: WebDriver, by_selector: str, selector_value: str, timeout: int = 2
-):
-    from selenium.webdriver.support.wait import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-
-    try:
-        element = WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((by_selector, selector_value))
-        )
-
-    except:
-        element = None
-    finally:
-        return element
 
 
 def enable_privacy_settings(driver: WebDriver):
-    driver.find_element(by=AppiumBy.XPATH, value='//*[@text="puppet"]').click()
+    element = find_and_click(
+        driver,
+        by_selector=AppiumBy.XPATH,
+        selector_value=f"//*[@text='puppet']",
+    )
     primary_checkbox = driver.find_element(
         by=AppiumBy.ID, value="android:id/switch_widget"
     )

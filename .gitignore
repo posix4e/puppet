@@ -1,5 +1,7 @@
 **/*.swp
 **/*.env
+__pycache__
 .vscode
 puppet.db
 node_modules/
+
