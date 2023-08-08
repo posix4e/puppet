@@ -118,6 +118,7 @@ def enable_privacy_settings(driver: WebDriver):
     # These sleeps are harsh, however are now needed till will fix the activity which brings up settings by default
     # Once thats fixed, we can activate the app back it should resume as is, without the back button
 
+    time.sleep(1)
     driver.back()
     time.sleep(1)
     driver.back()
