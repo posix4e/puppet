@@ -89,7 +89,12 @@ def save_server_settings(driver: WebDriver):
     )
 
 
-def enable_privacy_settings(driver: WebDriver):
+def enable_accessibility_settings(driver: WebDriver):
+    element = find_and_click(
+        driver,
+        by_selector=AppiumBy.ID,
+        selector_value=f"{APP_PACKAGE_NAME}:id/accessibilitySettings"
+    )
     element = find_and_click(
         driver,
         by_selector=AppiumBy.XPATH,
@@ -113,16 +118,20 @@ def enable_privacy_settings(driver: WebDriver):
     if not secondary_checkbox.get_attribute("checked") == "true":
         secondary_checkbox.click()
 
-    # driver.start_activity(APP_PACKAGE_NAME, APP_ACTIVITY_NAME)
+    driver.back()
+
+    driver.start_activity(APP_PACKAGE_NAME, ".ChatterAct")
+    driver.wait_activity(".ChatterAct", 5)
+
     # driver.activate_app(f"{APP_PACKAGE_NAME}")
     # These sleeps are harsh, however are now needed till will fix the activity which brings up settings by default
     # Once thats fixed, we can activate the app back it should resume as is, without the back button
 
-    time.sleep(1)
-    driver.back()
-    time.sleep(1)
-    driver.back()
-    time.sleep(1)
+    # time.sleep(1)
+    # driver.back()
+    # time.sleep(1)
+    # driver.back()
+    # time.sleep(1)
 
 
 class TestAppium(unittest.TestCase):
@@ -130,9 +139,7 @@ class TestAppium(unittest.TestCase):
         # Usage of the context manager ensures the driver session is closed properly
         # after the test completes. Otherwise, make sure to call `driver.quit()` on teardown.
         with android_driver({}) as driver:
-            enable_privacy_settings(driver)
-
-            driver.wait_activity(APP_ACTIVITY_NAME, 5)
+            enable_accessibility_settings(driver)
 
             save_server_settings(driver)
 
