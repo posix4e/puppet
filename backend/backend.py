@@ -226,12 +226,21 @@ async def saveurl(item: SaveURLItem):
 
 def assist_interface(uid, prompt, gpt_version):
     client = TestClient(app)
-
+    prompt = "If this text is asking you to either click on something, scroll up or down, or click on the first, return either acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK. If it isn't, answer the question as normal. If it's asking you to click, click first, or scroll up or down, then return only acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK, according to the command. Don't show anything before or after the command, nothing like 'Sure, here's the command you requested' just return the response. Here's the text:" + prompt
+    client = TestClient(app)
     response = client.post(
         "/assist",
         json={"uid": uid, "prompt": prompt, "version": gpt_version},
     )
-    return generate_html_response_from_openai(response.text)
+
+    if response == "acc:CLICK FIRST" or response == "acc:CLICK"  or response == "acc:UP"  or response == "acc:DOWN" :
+     response = client.post(
+        "/add_command",
+        json={"uid": uid, "command": response},
+     )
+     return response.json()
+    else:
+     return generate_html_response_from_openai(response.text)
 
 
 def get_user_interface(uid):
@@ -347,18 +356,6 @@ def add_command_interface(uid, command):
     return response.json()
 
 
-def get_add_command_interface():
-    return Interface(
-        fn=add_command_interface,
-        inputs=[
-            components.Textbox(label="UID", type="text"),
-            components.Textbox(label="Command", type="text"),
-        ],
-        outputs="json",
-        title="Add Command",
-        description="Add a new command for a given user.",
-    )
-
 
 app = mount_gradio_app(
     app,
@@ -368,7 +365,6 @@ app = mount_gradio_app(
             get_db_interface(),
             get_register_interface(),
             get_history_gradio_interface(),
-            get_add_command_interface(),
         ]
     ),
     path="/",
