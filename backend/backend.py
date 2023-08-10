@@ -389,19 +389,6 @@ def add_command_interface(uid, command):
     return response.json()
 
 
-def get_add_command_interface():
-    return Interface(
-        fn=add_command_interface,
-        inputs=[
-            components.Textbox(label="UID", type="text"),
-            components.Textbox(label="Command", type="text"),
-        ],
-        outputs="json",
-        title="Add Command",
-        description="Add a new command for a given user.",
-    )
-
-
 app = mount_gradio_app(
     app,
     TabbedInterface(
