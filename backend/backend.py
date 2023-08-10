@@ -18,6 +18,27 @@ from sqlalchemy import JSON, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from uvicorn import Config, Server
+from fuzzywuzzy import fuzz
+
+COMMANDS = {
+    "scroll_up": "acc:UP",
+    "scroll_down": "acc:DOWN",
+    "click_first": "acc:CLICK FIRST",
+    "click": "acc:CLICK"
+}
+
+def analyze_command(response):
+    response_lower = response.lower()
+    
+    for command_type, command_text in COMMANDS.items():
+        if fuzz.partial_ratio(response_lower, command_text.lower()) >= 90:
+            return command_type
+    
+    return None
+
+def generate_command_response(command_type):
+    return COMMANDS.get(command_type, None)
+
 
 LANGS = [
     "gpt-3.5-turbo",
@@ -226,21 +247,33 @@ async def saveurl(item: SaveURLItem):
 
 def assist_interface(uid, prompt, gpt_version):
     client = TestClient(app)
-    prompt = "If this text is asking you to either click on something, scroll up or down, or click on the first, return either acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK. If it isn't, answer the question as normal. If it's asking you to click, click first, or scroll up or down, then return only acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK, according to the command. Don't show anything before or after the command, nothing like 'Sure, here's the command you requested' just return the response. Here's the text:" + prompt
-    client = TestClient(app)
+    
+    modified_prompt = "If this text is asking you to either click on something, scroll up or down, or click on the first, return either acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK. If it isn't, answer the question as normal. If it's asking you to click, click first, or scroll up or down, then return only acc:UP, acc:DOWN, acc:CLICK FIRST, or acc:CLICK, according to the command. Don't show anything before or after the command, nothing like 'Sure, here's the command you requested' just return the response. Here's the text:" + prompt
+    
     response = client.post(
         "/assist",
-        json={"uid": uid, "prompt": prompt, "version": gpt_version},
+        json={"uid": uid, "prompt": modified_prompt, "version": gpt_version},
     )
-
-    if response == "acc:CLICK FIRST" or response == "acc:CLICK"  or response == "acc:UP"  or response == "acc:DOWN" :
-     response = client.post(
-        "/add_command",
-        json={"uid": uid, "command": response},
-     )
-     return response.json()
+    
+    response_data = json.loads(response.text)
+    generated_text = response_data["text"]
+    
+    command_type = analyze_command(generated_text)
+    
+    if command_type:
+        command_response = generate_command_response(command_type)
+        add_command_response = client.post(
+            "/add_command",
+            json={"uid": uid, "command": command_response},
+        )
+        
+        if add_command_response.status_code == 200:
+            return add_command_response.json()
+        else:
+            return {"error": "Error adding command to the queue"}
     else:
-     return generate_html_response_from_openai(response.text)
+        return generate_html_response_from_openai(response.text)
+
 
 
 def get_user_interface(uid):
@@ -355,6 +388,18 @@ def add_command_interface(uid, command):
     )
     return response.json()
 
+
+def get_add_command_interface():
+    return Interface(
+        fn=add_command_interface,
+        inputs=[
+            components.Textbox(label="UID", type="text"),
+            components.Textbox(label="Command", type="text"),
+        ],
+        outputs="json",
+        title="Add Command",
+        description="Add a new command for a given user.",
+    )
 
 
 app = mount_gradio_app(
