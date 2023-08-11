@@ -143,13 +143,17 @@ class TestAppium(unittest.TestCase):
 
             save_server_settings(driver)
 
-            find_and_click(driver, by_selector=AppiumBy.XPATH, selector_value='//*[@text="Tab 4"]')
+            find_and_click(
+                driver, by_selector=AppiumBy.XPATH, selector_value='//*[@text="Tab 4"]'
+            )
             element = driver.find_element(
-                by=AppiumBy.XPATH, value="//*[@text='UID']/following-sibling::android.widget.EditText"
+                by=AppiumBy.XPATH,
+                value="//*[@text='UID']/following-sibling::android.widget.EditText",
             )
             element.send_keys(TEST_UUID)
             element = driver.find_element(
-                by=AppiumBy.XPATH, value="//*[@text='Command']/following-sibling::android.widget.EditText"
+                by=AppiumBy.XPATH,
+                value="//*[@text='Command']/following-sibling::android.widget.EditText",
             )
             element.send_keys("test")
             element = driver.find_element(
