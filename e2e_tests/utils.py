@@ -23,4 +23,5 @@ def wait_for_element(
 
 def find_and_click(driver: WebDriver, by_selector: str, selector_value: str):
     element = driver.find_element(by=by_selector, value=selector_value)
-    element.click()
+    if element:
+        element.click()
