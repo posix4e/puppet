@@ -31,7 +31,7 @@ def create_android_driver(sauce_labs=False):
     capabilities = dict(
         platformName="Android",
         automationName="uiautomator2",
-        deviceName="Android",
+        deviceName="Google_Pixel_3a_real",
         appPackage=APP_PACKAGE_NAME,
         appActivity=APP_ACTIVITY_NAME,
         language="en",
@@ -51,9 +51,9 @@ def create_android_driver(sauce_labs=False):
         capabilities["sauce:options"]["build"] = f"puppet-build-{BUILD_STAGE}"
         capabilities["sauce:options"]["name"] = "Test Android"
         capabilities["appium:app"] = "storage:filename=app-release-unsigned.apk"
-        capabilities["appium:deviceName"] = "Android GoogleAPI Emulator"
+        capabilities["appium:deviceName"] = "Google_Pixel_3a_real"
 
-        connection_url = "https://ondemand.us-west-1.saucelabs.com:443/wd/hub"
+        connection_url = SAUCE_LABS_URL
     else:
         connection_url = APPIUM_SERVER_URL
 
@@ -143,20 +143,20 @@ class TestAppium(unittest.TestCase):
 
             save_server_settings(driver)
 
-            element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text="Tab 4"]')
-            element.click()
+            find_and_click(driver, by_selector=AppiumBy.XPATH, selector_value='//*[@text="Tab 4"]')
             element = driver.find_element(
-                by=AppiumBy.XPATH, value="//android.widget.EditText[@hint='UID']"
+                by=AppiumBy.XPATH, value="//*[@text='UID']/following-sibling::android.widget.EditText"
             )
             element.send_keys(TEST_UUID)
             element = driver.find_element(
-                by=AppiumBy.XPATH, value="//android.widget.EditText[@hint='Command']"
+                by=AppiumBy.XPATH, value="//*[@text='Command']/following-sibling::android.widget.EditText"
             )
             element.send_keys("test")
             element = driver.find_element(
                 by=AppiumBy.XPATH, value='//*[@text="Submit"]'
             )
             element.click()
+            driver.execute_script("sauce:job-result=passed")
 
 
 if __name__ == "__main__":
