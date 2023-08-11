@@ -93,7 +93,7 @@ def enable_accessibility_settings(driver: WebDriver):
     element = find_and_click(
         driver,
         by_selector=AppiumBy.ID,
-        selector_value=f"{APP_PACKAGE_NAME}:id/accessibilitySettings"
+        selector_value=f"{APP_PACKAGE_NAME}:id/accessibilitySettings",
     )
     element = find_and_click(
         driver,
