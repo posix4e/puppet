@@ -6,7 +6,7 @@ To understand tests or
 To understand how to build an apk. This is where our releases are generated
 ## Description
 
-Puppet is an Android app that allows users to automate and control various actions on their device using an Accessibility Service. The app is designed to interact with the device's user interface, perform clicks, scroll, type, and execute custom intents based on the commands received from a remote server. Puppet is useful for automating repetitive tasks, testing applications, and more.
+Puppet is an Android app that allows users to automate and control various actions on their device using an Accessibility Service. The app is designed to interact with the device's user interface, perform clicks, scroll, type, switch to package and execute custom intents based on the commands received from a remote server. Puppet is useful for automating repetitive tasks, testing applications, and more.
 
 ## Development
 
@@ -17,6 +17,7 @@ Puppet is an Android app that allows users to automate and control various actio
 - **Remote Control:** The app communicates with a remote server to receive commands and send event logs.
 - **Click, Scroll, and Type:** Puppet can simulate clicks, scroll up and down, and type text into input fields based on the commands received from the server.
 - **Custom Intents:** The app can execute custom intents sent from the server, allowing users to control other applications on the device.
+- **Package:** The app can launch main activity of a package (e.g. youtube, whatsapp etc), allowing users to control other applications on the device.
 - **Heartbeat Mechanism:** Puppet sends event logs and retrieves commands from the server periodically using a heartbeat mechanism.
 - **Notification:** The app runs in the background and shows a persistent notification to indicate that the service is active.
 
