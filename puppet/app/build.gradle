@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.ttt246.puppet'
-    compileSdkVersion 33
+    compileSdk 33
     kotlinOptions {
         jvmTarget = "1.8"
     }
@@ -28,10 +28,27 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
+        def DEFAULT_SERVER_URL = '"https://posix4e-puppet.hf.space"'
+        // This is a non existent UUID, meant to be a placeholder so that build wont yell
+        def DEFAULT_UUID = '"123456789012345"'
+
+        debug {
+            buildConfigField("String", "SERVER_URL", System.getenv("SERVER_URL") ?: DEFAULT_SERVER_URL)
+            buildConfigField("String", "UUID", System.getenv("UUID") ?: DEFAULT_UUID)
+            applicationIdSuffix ".debug"
+        }
+
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            buildConfigField("String", "SERVER_URL", System.getenv("SERVER_URL") ?: '""')
+            buildConfigField("String", "UUID", System.getenv("UUID") ?: '""')
         }
     }
 
