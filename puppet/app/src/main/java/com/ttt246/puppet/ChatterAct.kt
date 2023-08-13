@@ -3,6 +3,8 @@ package com.ttt246.puppet
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.provider.Settings
@@ -12,12 +14,20 @@ import androidx.appcompat.app.AppCompatActivity
 
 class ChatterAct : AppCompatActivity() {
     private lateinit var webView: WebView
+    private lateinit var sharedPreferences: SharedPreferences
+
     private val TAG = "ChatterActLog"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val editor = sharedPreferences.edit()
+        editor.putString("SERVER_URL", BuildConfig.SERVER_URL)
+        editor.putString("UUID", BuildConfig.UUID)
+        editor.apply()
 
         val accessibilitySettingsBtn: Button = findViewById(R.id.accessibilitySettings)
         accessibilitySettingsBtn.setOnClickListener {
