@@ -51,10 +51,16 @@ jobs:
 
         # Create APK Debug
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
+        env:
+          UUID: ${{ secrets.UUID}}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
         run: ./gradlew assembleDebug
 
         # Create APK Release
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
+        env:
+          UUID: ${{ secrets.RELEASE_UUID}}
+          SERVER_URL: ${{ secrets.RELEASE_SERVER_URL }}
         run: ./gradlew assemble
 
         # Create Bundle AAB Release
