@@ -1,4 +1,4 @@
-Running E2E Tests
+Running Tests
 
 This serves as a framework to build regression tests for puppet android app.
 Currently the test supports running the tests against the built android package in dev machine or in sauce labs.
