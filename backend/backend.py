@@ -285,7 +285,7 @@ def generate_html(gpt_response):
     data and write it out as a giant json blob that can be easily diplayed.
     >>>
     >>> data = {'text': 'This is a test'}
-    >>> generate_html_response_from_openai(json.dumps(data))
+    >>> generate_html(json.dumps(data))
     '<html><p>This is a test</p>\n</html>'
     """
 
