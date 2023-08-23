@@ -1,9 +1,13 @@
 package com.ttt246.puppet
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.VpnService
 import android.os.Bundle
-import android.preference.PreferenceManager
-import android.provider.Settings
+import androidx.preference.PreferenceManager
 import android.widget.Button
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
@@ -23,6 +27,34 @@ class SettingsActivity : AppCompatActivity() {
         val serverUrlEditText: EditText = findViewById(R.id.serverUrlEditText)
         val uuidEditText: EditText = findViewById(R.id.uuidEditText)
         val saveButton: Button = findViewById(R.id.saveButton)
+        val enableVPNButton: Button = findViewById(R.id.enableVPNButton)
+        val disableVPNButton: Button = findViewById(R.id.disableVPNButton)
+
+        enableVPNButton.setOnClickListener{
+            val channel = NotificationChannel(
+                "vpnChannel",
+                "VPN Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+
+            val intent = VpnService.prepare(applicationContext)
+            if(intent != null){
+                startActivityForResult(intent, 0)
+            }
+            Intent(this, AdblockVPNService::class.java).also{
+                it.action = AdblockVPNService.Action.START.toString()
+                startService(it)
+            }
+        }
+
+        disableVPNButton.setOnClickListener {
+            Intent(this, AdblockVPNService::class.java).also{
+                it.action = AdblockVPNService.Action.STOP.toString()
+                startService(it)
+            }
+        }
 
         // Pre-fill the EditText with the current server URL.
         serverUrlEditText.setText(sharedPreferences.getString("SERVER_URL", ""))

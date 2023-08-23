@@ -1,6 +1,9 @@
 package com.ttt246.puppet
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -11,6 +14,7 @@ import android.provider.Settings
 import android.webkit.WebView
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 
 class ChatterAct : AppCompatActivity() {
     private lateinit var webView: WebView
@@ -20,6 +24,11 @@ class ChatterAct : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            0
+        )
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
 
@@ -50,6 +59,7 @@ class ChatterAct : AppCompatActivity() {
             val settingsIntent = Intent(this, SettingsActivity::class.java)
             startActivity(settingsIntent)
         }
+
     }
 
     @SuppressLint("SetJavaScriptEnabled")

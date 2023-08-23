@@ -24,5 +24,21 @@
         android:text="Save"
         android:layout_below="@id/uuidEditText" />
 
+    <Button
+        android:id="@+id/enableVPNButton"
+        android:layout_width="149dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/uuidEditText"
+        android:layout_marginTop="69dp"
+        android:text="Turn on VPN" />
+
+    <Button
+        android:id="@+id/disableVPNButton"
+        android:layout_width="149dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/uuidEditText"
+        android:layout_marginTop="121dp"
+        android:text="Turn off VPN" />
+
 </RelativeLayout>
 
