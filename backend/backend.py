@@ -3,9 +3,7 @@ import uuid
 from datetime import datetime
 
 import mistune
-import openai
 from dotenv import load_dotenv
-from easycompletion import openai_text_call
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.testclient import TestClient
@@ -21,7 +19,7 @@ from uvicorn import Config, Server
 from gpt4all import GPT4All
 
 
-LANGS = ["gpt-3.5-turbo", "gpt-4", "falcon"]
+LANGS = ["falcon"]
 
 Base = declarative_base()
 
@@ -31,10 +29,10 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uid = Column(String, nullable=False)
-    openai_key = Column(String, unique=True, nullable=False)
+    name = Column(String, unique=True, nullable=False)
 
     def __repr__(self):
-        return f"User(id={self.id}, uid={self.uid}"
+        return f"User(id={self.id}, name={self.name} uid={self.uid}"
 
 
 class AndroidHistory(Base):
@@ -87,7 +85,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 class RegisterItem(BaseModel):
-    openai_key: str
+    name: str
 
 
 class CommandItem(BaseModel):
@@ -161,11 +159,11 @@ async def send_event(item: EventItem):
 @app.post("/register")
 async def register(item: RegisterItem):
     db: Session = SessionLocal()
-    existing_user = db.query(User).filter(User.openai_key == item.openai_key).first()
+    existing_user = db.query(User).filter(User.name == item.name).first()
     if existing_user:
         return {"uid": existing_user.uid}  # return existing UUID
     else:
-        new_user = User(uid=str(uuid.uuid4()), openai_key=item.openai_key)
+        new_user = User(uid=str(uuid.uuid4()), name=item.name)
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
@@ -175,17 +173,14 @@ async def register(item: RegisterItem):
 @app.post("/assist")
 async def assist(item: AssistItem):
     db: Session = SessionLocal()
+    response = {}
     if item.version == "falcon":
         output = model.generate(item.prompt, max_tokens=60, temp=0)
-        return {"text": output, "usage": None, "finish_reason": None, "error": None}
+        response = {"text": output, "usage": None, "finish_reason": None, "error": None}
 
     user = db.query(User).filter(User.uid == item.uid).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid uid")
-
-    # Call OpenAI
-    openai.api_key = user.openai_key
-    response = openai_text_call(item.prompt, model=item.version)
 
     # Update the last time assist was called
     user.last_assist = datetime.now()
@@ -227,8 +222,8 @@ async def adblock_filter(item: URLItem):
 @app.get("/get_history/{uid}")
 async def get_history(uid: str):
     db: Session = SessionLocal()
-    history = db.query(BrowserHistory).filter(BrowserHistory.uid == uid).all()
-    browser_history = db.query(AndroidHistory).filter(AndroidHistory.uid == uid).all()
+    history = db.query(AndroidHistory).filter(AndroidHistory.uid == uid).all()
+    browser_history = db.query(BrowserHistory).filter(BrowserHistory.uid == uid).all()
     commands = db.query(Command).filter(Command.uid == uid).all()
 
     try:
@@ -264,7 +259,7 @@ def assist_interface(uid, prompt, gpt_version):
         "/assist",
         json={"uid": uid, "prompt": prompt, "version": gpt_version},
     )
-    return generate_html_response_from_openai(response.text)
+    return generate_html(response.text)
 
 
 def get_user_interface(uid):
@@ -284,7 +279,7 @@ class HighlightRenderer(mistune.HTMLRenderer):
         return "<pre><code>" + mistune.escape(code) + "</code></pre>"
 
 
-def generate_html_response_from_openai(openai_response):
+def generate_html(gpt_response):
     r"""
     This is used by the gradio to extract all of the user
     data and write it out as a giant json blob that can be easily diplayed.
@@ -294,15 +289,15 @@ def generate_html_response_from_openai(openai_response):
     '<html><p>This is a test</p>\n</html>'
     """
 
-    openai_response = json.loads(openai_response)
-    openai_response = openai_response["text"]
+    gpt_response = json.loads(gpt_response)
+    gpt_response = gpt_response["text"]
     markdown = mistune.create_markdown(renderer=HighlightRenderer())
-    openai_response = markdown(openai_response)
-    return f"<html>{openai_response}</html>"
+    gpt_response = markdown(gpt_response)
+    return f"<html>{gpt_response}</html>"
 
 
 def get_assist_interface():
-    gpt_version_dropdown = components.Dropdown(label="GPT Version", choices=LANGS)
+    gpt_version_dropdown = components.Dropdown(label="GPT4All Model", choices=LANGS)
 
     return Interface(
         fn=assist_interface,
@@ -312,8 +307,8 @@ def get_assist_interface():
             gpt_version_dropdown,
         ],
         outputs="html",
-        title="OpenAI Text Generation",
-        description="Generate text using OpenAI's GPT-4 model.",
+        title="GPT4All Chat",
+        description="Generate text using a GPT4All model.",
     )
 
 
@@ -329,18 +324,18 @@ def get_db_interface():
 
 ## The register interface uses this weird syntax to make sure we don't copy and
 ## paste quotes in the uid when we output it
-def register_interface(openai_key):
+def register_interface(name):
     client = TestClient(app)
     response = client.post(
         "/register",
-        json={"openai_key": openai_key},
+        json={"name": name},
     )
     return response.json()
 
 
 def get_register_interface():
-    def wrapper(openai_key):
-        result = register_interface(openai_key)
+    def wrapper(name):
+        result = register_interface(name)
         return f"""<p id='uid'>{result["uid"]}</p>
         <button onclick="navigator.clipboard.writeText(document.getElementById('uid').innerText)">
         Copy to clipboard
@@ -348,10 +343,10 @@ def get_register_interface():
 
     return Interface(
         fn=wrapper,
-        inputs=[components.Textbox(label="OpenAI Key", type="text")],
+        inputs=[components.Textbox(label="Name", type="text")],
         outputs=components.HTML(),
         title="Register New User",
-        description="Register a new user by entering an OpenAI key.",
+        description="Create a user by entering a username",
     )
 
 
