@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
         <application
             android:allowBackup="true"
@@ -40,6 +40,13 @@
                     android:name="android.accessibilityservice"
                     android:resource="@xml/accessibility_service_config"/>
             </service>
+            <service android:name=".AdblockVPNService"
+                android:permission="android.permission.BIND_VPN_SERVICE">
+                <intent-filter>
+                    <action android:name="android.net.VpnService"/>
+                </intent-filter>
+            </service>
+
         </application>
 
     </manifest>

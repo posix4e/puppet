@@ -21,11 +21,7 @@ from uvicorn import Config, Server
 from gpt4all import GPT4All
 
 
-LANGS = [
-    "gpt-3.5-turbo",
-    "gpt-4",
-    "falcon"
-]
+LANGS = ["gpt-3.5-turbo", "gpt-4", "falcon"]
 
 Base = declarative_base()
 
@@ -76,6 +72,7 @@ class Command(Base):
 
     def __repr__(self):
         return f"self.command"
+
 
 model = GPT4All("ggml-model-gpt4all-falcon-q4_0.bin")
 model.chat_session()
@@ -178,15 +175,9 @@ async def register(item: RegisterItem):
 @app.post("/assist")
 async def assist(item: AssistItem):
     db: Session = SessionLocal()
-    if(item.version == "falcon"):
+    if item.version == "falcon":
         output = model.generate(item.prompt, max_tokens=60, temp=0)
-        return {
-            "text": output,
-            "usage": None,
-            "finish_reason": None,
-            "error": None
-        }
-
+        return {"text": output, "usage": None, "finish_reason": None, "error": None}
 
     user = db.query(User).filter(User.uid == item.uid).first()
     if not user:
@@ -211,18 +202,25 @@ async def assist(item: AssistItem):
 
 @app.post("/adblock_filter")
 async def adblock_filter(item: URLItem):
-    output = model.generate("I am building a soft ad-block filter, should I filter \"{}\"? answer directly in 1 sentence.".format(item.url), max_tokens=60, temp=0)
-    if(len(output) > 6):
+    output = model.generate(
+        'I am building a soft ad-block filter, should I filter "{}"? answer directly in 1 sentence.'.format(
+            item.url
+        ),
+        max_tokens=60,
+        temp=0,
+    )
+
+    if len(output) > 6:
         return {
             "allow": "no" in output[:6].lower(),
             "full_response": output,
-            "error": None
-        }    
+            "error": None,
+        }
 
     return {
         "allow": None,
         "full_response": output,
-        "error": "Output length less than 6 characters"
+        "error": "Output length less than 6 characters",
     }
 
 
@@ -414,6 +412,7 @@ def get_adblock_filter_interface():
         title="Adblock filter",
         description="Given a domain, use an LLM to determine whether to allow/block the domain.",
     )
+
 
 app = mount_gradio_app(
     app,
