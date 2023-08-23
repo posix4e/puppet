@@ -106,6 +106,7 @@ open class PuppetAS : AccessibilityService() {
             when {
                 isIntentCommand(command) -> executeIntentCommand(command)
                 isAccCommand(command) -> executeAccCommand(command)
+                isSwitchAppCommand(command) -> executeSwitchAppCommand(command)
                 else -> Log.e("PuppetAS", "Invalid command: $command")
             }
         }
@@ -119,7 +120,12 @@ open class PuppetAS : AccessibilityService() {
         return command.startsWith("acc:")
     }
 
-     fun executeAccCommand(command: String) {
+    fun isSwitchAppCommand(command: String): Boolean {
+        return command.startsWith("switch:")
+    }
+
+
+    fun executeAccCommand(command: String) {
         val accCommand = command.removePrefix("acc:")
         Log.i("PuppetAS", "Executing Acc command: $accCommand")
 
@@ -248,6 +254,23 @@ open class PuppetAS : AccessibilityService() {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
+
+    fun executeSwitchAppCommand(command: String) {
+        val packageName = command.removePrefix("switch:")
+        Log.i("PuppetAS", "Executing Switch app command: $packageName")
+//        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        val launchIntent = Intent(Intent.ACTION_MAIN)
+        launchIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+        launchIntent.setPackage(packageName)
+        launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        if (launchIntent != null)
+            try {
+                startActivity(launchIntent)
+            } catch (e: Exception) {
+                Log.i("PuppetAS", "Error switching to the package: ${e.message}")
+            }
+    }
+
 
     private var lastOutput: String? = null
 

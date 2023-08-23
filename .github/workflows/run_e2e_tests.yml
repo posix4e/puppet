@@ -10,7 +10,7 @@ jobs:
   test:
     defaults:
       run:
-        working-directory: e2e_tests
+        working-directory: tests
     runs-on: ubuntu-latest    
     steps:
       - uses: actions/checkout@v3

@@ -12,7 +12,6 @@ A next generation cloud operating system with legacy integration
 
 This repo also allows you to drive an android machine as easily as the web. I was inspired by https://github.com/nat/natbot/blob/main/natbot.py, but this is for android instead of the web. It uses acceesibility to see, and additionally Android Intents to steer. Sometimes it needs the users' help because of android's security model. 
 
-
 This is a 3 part system
 - [puppet](puppet/README.md) The android app
 - [backend](backend/README.md) A simple python backend
