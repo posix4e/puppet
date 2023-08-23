@@ -18,11 +18,10 @@ from sqlalchemy import JSON, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from uvicorn import Config, Server
+from gpt4all import GPT4All
 
-LANGS = [
-    "gpt-3.5-turbo",
-    "gpt-4",
-]
+
+LANGS = ["gpt-3.5-turbo", "gpt-4", "falcon"]
 
 Base = declarative_base()
 
@@ -75,6 +74,8 @@ class Command(Base):
         return f"self.command"
 
 
+model = GPT4All("ggml-model-gpt4all-falcon-q4_0.bin")
+model.chat_session()
 engine = create_engine("sqlite:///puppet.db")
 Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -108,6 +109,10 @@ class AssistItem(BaseModel):
 class SaveURLItem(BaseModel):
     uid: str
     machineid: str
+    url: str
+
+
+class URLItem(BaseModel):
     url: str
 
 
@@ -170,6 +175,10 @@ async def register(item: RegisterItem):
 @app.post("/assist")
 async def assist(item: AssistItem):
     db: Session = SessionLocal()
+    if item.version == "falcon":
+        output = model.generate(item.prompt, max_tokens=60, temp=0)
+        return {"text": output, "usage": None, "finish_reason": None, "error": None}
+
     user = db.query(User).filter(User.uid == item.uid).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid uid")
@@ -189,6 +198,30 @@ async def assist(item: AssistItem):
     db.commit()
 
     return response
+
+
+@app.post("/adblock_filter")
+async def adblock_filter(item: URLItem):
+    output = model.generate(
+        'I am building a soft ad-block filter, should I filter "{}"? answer directly in 1 sentence.'.format(
+            item.url
+        ),
+        max_tokens=60,
+        temp=0,
+    )
+
+    if len(output) > 6:
+        return {
+            "allow": "no" in output[:6].lower(),
+            "full_response": output,
+            "error": None,
+        }
+
+    return {
+        "allow": None,
+        "full_response": output,
+        "error": "Output length less than 6 characters",
+    }
 
 
 @app.get("/get_history/{uid}")
@@ -360,6 +393,27 @@ def get_add_command_interface():
     )
 
 
+def adblock_filter_interface(url: str):
+    client = TestClient(app)
+    response = client.post(
+        "/adblock_filter",
+        json={"url": url},
+    )
+    return response.json()
+
+
+def get_adblock_filter_interface():
+    return Interface(
+        fn=adblock_filter_interface,
+        inputs=[
+            components.Textbox(label="URL", type="text"),
+        ],
+        outputs="json",
+        title="Adblock filter",
+        description="Given a domain, use an LLM to determine whether to allow/block the domain.",
+    )
+
+
 app = mount_gradio_app(
     app,
     TabbedInterface(
@@ -369,6 +423,7 @@ app = mount_gradio_app(
             get_register_interface(),
             get_history_gradio_interface(),
             get_add_command_interface(),
+            get_adblock_filter_interface(),
         ]
     ),
     path="/",

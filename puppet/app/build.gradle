@@ -63,10 +63,15 @@ dependencies {
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.core:core-ktx:1.10.1'
     implementation 'androidx.test:core-ktx:1.5.0'
+    implementation "dnsjava:dnsjava:3.3.1"
+    implementation 'org.pcap4j:pcap4j-core:1.6.4'
+    implementation 'androidx.preference:preference-ktx:1.2.1'
+    implementation 'org.pcap4j:pcap4j-packetfactory-propertiesbased:1.6.4'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 
     // Add Robolectric and Mockito dependencies for unit testing.
     testImplementation 'org.robolectric:robolectric:4.7.2'
     testImplementation 'org.mockito:mockito-core:4.1.0'
+
 }
