@@ -1,3 +1,4 @@
+import os
 import json
 import uuid
 from datetime import datetime
@@ -8,6 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.testclient import TestClient
 from gradio import Interface, TabbedInterface, components, mount_gradio_app
+import gradio as gr
 from pydantic import BaseModel
 from pygments import highlight
 from pygments.formatters import html
@@ -27,6 +29,7 @@ model.chat_session()
 engine = create_engine("sqlite:///puppet.db")
 Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
 load_dotenv()
 
@@ -124,13 +127,14 @@ async def register(item: RegisterItem):
 async def assist(item: AssistItem):
     db: Session = SessionLocal()
     response = {}
-    if item.version == "falcon":
-        output = model.generate(item.prompt, max_tokens=60, temp=0)
-        response = {"text": output, "usage": None, "finish_reason": None, "error": None}
 
     user = db.query(User).filter(User.uid == item.uid).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid uid")
+
+    if item.version == "falcon":
+        output = model.generate(item.prompt, max_tokens=60, temp=0)
+        response = {"text": output, "usage": None, "finish_reason": None, "error": None}
 
     # Update the last time assist was called
     user.last_assist = datetime.now()
@@ -202,14 +206,18 @@ async def saveurl(item: SaveURLItem):
     return {"message": "Browser history saved"}
 
 
-def assist_interface(uid, prompt, gpt_version):
+def assist_interface(uid, message, history):
     client = TestClient(app)
+    if message == "" or uid == "":
+        return "", history
 
     response = client.post(
         "/assist",
-        json={"uid": uid, "prompt": prompt, "version": gpt_version},
+        json={"uid": uid, "prompt": message, "version": "falcon"},
     )
-    return generate_html(response.text)
+    if response.is_error:
+        return message, history + [(message, "ERROR: invalid UID")]
+    return "", history + [(message, generate_html(response.text))]
 
 
 def get_user_interface(uid):
@@ -247,19 +255,41 @@ def generate_html(gpt_response):
 
 
 def get_assist_interface():
-    gpt_version_dropdown = components.Dropdown(label="GPT4All Model", choices=LANGS)
-
-    return Interface(
-        fn=assist_interface,
-        inputs=[
-            components.Textbox(label="UID", type="text"),
-            components.Textbox(label="Prompt", type="text"),
-            gpt_version_dropdown,
-        ],
-        outputs="html",
-        title="GPT4All Chat",
-        description="Generate text using a GPT4All model.",
-    )
+    with gr.Blocks() as interface:
+        gr.Markdown(
+            f"<h1 style='text-align: center; margin-bottom: 1rem'>GPT4All chatbot</h1>"
+        )
+        gr.Markdown("Chat to the GPT4All falcon bot")
+        with gr.Column(variant="panel"):
+            chatbot = gr.Chatbot()
+            with gr.Row():
+                id_textbox = gr.Textbox(container=False, label="UID", placeholder="UID")
+            with gr.Group():
+                with gr.Row():
+                    prompt_textbox = gr.Textbox(
+                        container=False,
+                        show_label=False,
+                        scale=7,
+                        label="Message",
+                        placeholder="Type a message...",
+                    )
+                    submit_btn = gr.Button(
+                        "Submit",
+                        variant="primary",
+                        scale=1,
+                        min_width=150,
+                    )
+                    prompt_textbox.submit(
+                        assist_interface,
+                        inputs=[id_textbox, prompt_textbox, chatbot],
+                        outputs=[prompt_textbox, chatbot],
+                    )
+                    submit_btn.click(
+                        assist_interface,
+                        inputs=[id_textbox, prompt_textbox, chatbot],
+                        outputs=[prompt_textbox, chatbot],
+                    )
+    return interface
 
 
 def get_db_interface():
