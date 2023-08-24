@@ -1,0 +1,38 @@
+openapi: 3.0.1
+info:
+  title: TODO Plugin
+  description: A plugin that dectects if the command acc:UP, acc:DOWN, acc:CLICK, or acc:CLICK first are either in the text or implied by the text.
+  version: 'v1'
+servers:
+  - url: https://posix4e-puppet.hf.space/
+paths:
+  /detectcommand/{command}:
+    get:
+      operationId: detectCommand
+      summary: Detect if up down click or click first are in the command
+      parameters:
+      - in: path
+        name: command
+        schema:
+            type: string
+        required: true
+        description: The command to check.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getTodosResponse'
+
+
+components:
+  schemas:
+    detectcommandResponse:
+      type: object
+      properties:
+        todos:
+          type: array
+          items:
+            type: string
+          description: Command you are detecting.
