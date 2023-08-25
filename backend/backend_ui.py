@@ -5,8 +5,10 @@ import gradio as gr
 
 from pygments import highlight
 from pygments.formatters import html
+from pygments.lexers import get_lexer_by_name
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+
 
 LANGS = ["gpt-3.5-turbo", "gpt-4", "falcon"]
 url_host = "http://0.0.0.0:7860"
@@ -21,7 +23,7 @@ def assist_interface(uid, message, version, history):
         json={"uid": uid, "prompt": message, "version": version},
     )
     if response.status_code != 200:
-        return message, history + [(message, "ERROR: Invalid UID")]
+        return message, history + [(message, response.text)]
     return "", history + [(message, generate_html(response.text))]
 
 
@@ -178,10 +180,10 @@ def get_add_command_interface():
     )
 
 
-def adblock_filter_interface(url: str):
+def adblock_filter_interface(uid: str, url: str, version: str):
     response = requests.post(
         url_host + "/adblock_filter",
-        json={"url": url},
+        json={"uid": uid, "url": url, "version": version},
     )
     return response.json()
 
@@ -190,7 +192,9 @@ def get_adblock_filter_interface():
     return gr.Interface(
         fn=adblock_filter_interface,
         inputs=[
+            gr.components.Textbox(label="UID", type="text"),
             gr.components.Textbox(label="URL", type="text"),
+            gr.components.Dropdown(label="LLM Model", choices=LANGS, value="falcon"),
         ],
         outputs="json",
         title="Adblock filter",

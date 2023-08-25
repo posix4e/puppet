@@ -187,10 +187,10 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
         }
     }
 
-    private fun sendPuppetRequest(domain: String, s: Socket, host: String): Boolean{
+    private fun sendPuppetRequest(domain: String, uid: String, s: Socket, host: String): Boolean{
         var allowed: Boolean = true
         val writer = PrintWriter(s.getOutputStream())
-        val requestBody = "{\"data\":[\"$domain\"],\"event_data\":null,\"fn_index\":37,\"session_hash\":\"ccomaehgo0q\"}"
+        val requestBody = "{\"data\":[\"$uid\", \"$domain\", \"falcon\"],\"event_data\":null,\"fn_index\":32,\"session_hash\":\"ccomaehgo0q\"}"
 
         writer.println("POST /run/predict HTTP/1.1")
         writer.println("Content-Length: "+requestBody.length)
@@ -248,7 +248,9 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
 
             val response: ByteArray
 
-            val host: String = sharedPreferences!!.getString("SERVER_URL", "http://172.17.0.1:7860")!!
+            val host: String = sharedPreferences?.getString("SERVER_URL", "http://172.17.0.1:7860")!!
+            val uid: String = sharedPreferences?.getString("UUID", "")!!
+
             val uri = URI(host)
             var port: Int = if(uri.port != -1){
                 uri.port
@@ -260,7 +262,7 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
             val s = Socket(uri.host, port)
             vpnService.protect(s)
 
-            var allowed: Boolean = sendPuppetRequest(dnsQueryName, s, host)
+            var allowed: Boolean = sendPuppetRequest(dnsQueryName, uid, s, host)
             s.close()
 
             if(allowed){

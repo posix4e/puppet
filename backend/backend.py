@@ -10,7 +10,6 @@ from gradio import mount_gradio_app
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from pygments.lexers import get_lexer_by_name
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from uvicorn import Config, Server
@@ -18,9 +17,10 @@ from gpt4all import GPT4All
 from models import Base, User, AndroidHistory, BrowserHistory, Command
 from backend_ui import get_interface
 
-
-model = GPT4All("ggml-model-gpt4all-falcon-q4_0.bin")
-model.chat_session()
+GPT4ALL_MODELS_ENABLED = True
+if GPT4ALL_MODELS_ENABLED:
+    model = GPT4All("ggml-model-gpt4all-falcon-q4_0.bin")
+    model.chat_session()
 engine = create_engine("sqlite:///puppet.db")
 Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -64,7 +64,9 @@ class SaveURLItem(BaseModel):
 
 
 class URLItem(BaseModel):
+    uid: str
     url: str
+    version: str
 
 
 @app.post("/add_command")
@@ -87,7 +89,7 @@ async def send_event(item: EventItem):
     db: Session = SessionLocal()
     user = db.query(User).filter(User.uid == item.uid).first()
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid uid")
+        raise HTTPException(status_code=400, detail="Invalid UID")
 
     # Update the last time send_event was called and increment the number of events
     user.last_event = datetime.now()
@@ -148,8 +150,14 @@ async def assist(item: AssistItem):
     if item.version.startswith("gpt-"):
         openai.api_key = user.openai_key
         response = openai_text_call(item.prompt, model=item.version)
+        if "error" in response:
+            raise HTTPException(status_code=400, detail=response["error"])
     if item.version == "falcon":
-        output = model.generate(item.prompt, max_tokens=60, temp=0)
+        output = (
+            model.generate(item.prompt, max_tokens=60, temp=0)
+            if GPT4ALL_MODELS_ENABLED
+            else "MODEL DISABLED"
+        )
         response = {"text": output, "usage": None, "finish_reason": None, "error": None}
 
     # Update the last time assist was called
@@ -167,25 +175,36 @@ async def assist(item: AssistItem):
 
 @app.post("/adblock_filter")
 async def adblock_filter(item: URLItem):
-    output = model.generate(
-        'I am building a soft ad-block filter, should I filter "{}"? answer directly in 1 sentence.'.format(
-            item.url
-        ),
-        max_tokens=60,
-        temp=0,
+    db: Session = SessionLocal()
+    prompt = 'I am building a soft ad-block filter, should I filter "{}"? answer directly in 1 sentence starting with yes or no.'.format(
+        item.url
     )
 
-    if len(output) > 6:
-        return {
-            "allow": "no" in output[:6].lower(),
-            "full_response": output,
-            "error": None,
-        }
+    user = db.query(User).filter(User.uid == item.uid).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid uid")
+
+    if item.version.startswith("gpt-"):
+        openai.api_key = user.openai_key
+        response = openai_text_call(prompt, model=item.version)
+        if response["error"]:
+            raise HTTPException(status_code=400, detail=response["error"])
+        output = response["text"] if "text" in response else ""
+    elif item.version == "falcon":
+        output = (
+            model.generate(prompt[:-25], max_tokens=60, temp=0)
+            if GPT4ALL_MODELS_ENABLED
+            else "no 123456789"
+        )
+
+    if len(output) < 6:
+        raise HTTPException(
+            status_code=400, detail="Output length less than 6 characters: "
+        )
 
     return {
-        "allow": None,
+        "allow": "no" in output[:6].lower(),
         "full_response": output,
-        "error": "Output length less than 6 characters",
     }
 
 
