@@ -1,31 +1,34 @@
+import json
+import requests
 import mistune
 import gradio as gr
 
 from pygments import highlight
 from pygments.formatters import html
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import sessionmaker
+
+LANGS = ["gpt-3.5-turbo", "gpt-4", "falcon"]
+url_host = "http://0.0.0.0:7860"
 
 
-def assist_interface(uid, message, history):
-    client = TestClient(app)
+def assist_interface(uid, message, version, history):
     if message == "" or uid == "":
         return "", history
 
-    response = client.post(
-        "/assist",
-        json={"uid": uid, "prompt": message, "version": "falcon"},
+    response = requests.post(
+        url_host + "/assist",
+        json={"uid": uid, "prompt": message, "version": version},
     )
-    if response.is_error:
-        return message, history + [(message, "ERROR: invalid UID")]
+    if response.status_code != 200:
+        return message, history + [(message, "ERROR: Invalid UID")]
     return "", history + [(message, generate_html(response.text))]
 
 
 def get_user_interface(uid):
-    db: Session = SessionLocal()
-    user = db.query(User).filter(User.uid == uid).first()
-    if not user:
-        return {"message": "No user with this uid found"}
-    return str(user)
+    response = requests.post(url_host + "/user_details", json={"uid": uid})
+
+    return response.text
 
 
 class HighlightRenderer(mistune.HTMLRenderer):
@@ -59,11 +62,15 @@ def get_assist_interface():
         gr.Markdown(
             f"<h1 style='text-align: center; margin-bottom: 1rem'>GPT4All chatbot</h1>"
         )
-        gr.Markdown("Chat to the GPT4All falcon bot")
+        gr.Markdown("Chat to the GPT4All bot")
         with gr.Column(variant="panel"):
             chatbot = gr.Chatbot()
             with gr.Row():
                 id_textbox = gr.Textbox(container=False, label="UID", placeholder="UID")
+            with gr.Row():
+                llm_model = gr.components.Dropdown(
+                    container=False, label="LLM Model", choices=LANGS, value="falcon"
+                )
             with gr.Group():
                 with gr.Row():
                     prompt_textbox = gr.Textbox(
@@ -81,12 +88,12 @@ def get_assist_interface():
                     )
                     prompt_textbox.submit(
                         assist_interface,
-                        inputs=[id_textbox, prompt_textbox, chatbot],
+                        inputs=[id_textbox, prompt_textbox, llm_model, chatbot],
                         outputs=[prompt_textbox, chatbot],
                     )
                     submit_btn.click(
                         assist_interface,
-                        inputs=[id_textbox, prompt_textbox, chatbot],
+                        inputs=[id_textbox, prompt_textbox, llm_model, chatbot],
                         outputs=[prompt_textbox, chatbot],
                     )
     return interface
@@ -104,35 +111,39 @@ def get_db_interface():
 
 ## The register interface uses this weird syntax to make sure we don't copy and
 ## paste quotes in the uid when we output it
-def register_interface(name):
-    client = TestClient(app)
-    response = client.post(
-        "/register",
-        json={"name": name},
+def register_interface(name, openai_key):
+    response = requests.post(
+        url_host + "/register",
+        json={"name": name, "openai_key": openai_key},
     )
     return response.json()
 
 
 def get_register_interface():
-    def wrapper(name):
-        result = register_interface(name)
-        return f"""<p id='uid'>{result["uid"]}</p>
-        <button onclick="navigator.clipboard.writeText(document.getElementById('uid').innerText)">
-        Copy to clipboard
-        </button>"""
+    def wrapper(name, openai_key):
+        result = register_interface(name, openai_key)
+        return f"""
+            {{'uid': '<span id='uid'>{result["uid"]}</span>', existing: {result["existing"]}}}
+                <br>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('uid').innerText)">
+                    Copy to clipboard
+                </button>
+        """
 
     return gr.Interface(
         fn=wrapper,
-        inputs=[gr.components.Textbox(label="Name", type="text")],
+        inputs=[
+            gr.components.Textbox(label="Name", type="text"),
+            gr.components.Textbox(label="OpenAI key", type="text"),
+        ],
         outputs=gr.components.HTML(),
         title="Register New User",
-        description="Create a user by entering a username",
+        description="Create a user by entering a username and openai_key (optional)",
     )
 
 
 def get_history_interface(uid):
-    client = TestClient(app)
-    response = client.get(f"/get_history/{uid}")
+    response = requests.get(f"{url_host}/get_history/{uid}")
     return response.json()
 
 
@@ -147,9 +158,8 @@ def get_history_gradio_interface():
 
 
 def add_command_interface(uid, command):
-    client = TestClient(app)
-    response = client.post(
-        "/add_command",
+    response = requests.post(
+        url_host + "/add_command",
         json={"uid": uid, "command": command},
     )
     return response.json()
@@ -169,9 +179,8 @@ def get_add_command_interface():
 
 
 def adblock_filter_interface(url: str):
-    client = TestClient(app)
-    response = client.post(
-        "/adblock_filter",
+    response = requests.post(
+        url_host + "/adblock_filter",
         json={"url": url},
     )
     return response.json()

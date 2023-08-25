@@ -1,5 +1,8 @@
+from datetime import datetime
 from sqlalchemy import JSON, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
+from sqlalchemy.schema import CreateTable
 
 Base = declarative_base()
 
@@ -7,9 +10,10 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "user_data"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    uid = Column(String, nullable=False)
-    name = Column(String, unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    uid = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False, server_default="Default name")
+    openai_key = Column(String, unique=False, nullable=True)
 
     def __repr__(self):
         return f"User(id={self.id}, name={self.name} uid={self.uid}"
@@ -50,3 +54,7 @@ class Command(Base):
 
     def __repr__(self):
         return f"self.command"
+
+
+if __name__ == "__main__":
+    print(CreateTable(User.__table__))

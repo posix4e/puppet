@@ -1,13 +1,15 @@
 import os
-import json
 import uuid
 from datetime import datetime
 
+import openai
 from dotenv import load_dotenv
+from easycompletion import openai_text_call
 from fastapi import FastAPI, HTTPException
 from gradio import mount_gradio_app
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from pygments.lexers import get_lexer_by_name
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,9 +17,6 @@ from uvicorn import Config, Server
 from gpt4all import GPT4All
 from models import Base, User, AndroidHistory, BrowserHistory, Command
 from backend_ui import get_interface
-
-
-LANGS = ["falcon"]
 
 
 model = GPT4All("ggml-model-gpt4all-falcon-q4_0.bin")
@@ -33,8 +32,13 @@ app = FastAPI(debug=True)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
+class UserIDItem(BaseModel):
+    uid: str
+
+
 class RegisterItem(BaseModel):
     name: str
+    openai_key: Optional[str]
 
 
 class CommandItem(BaseModel):
@@ -110,13 +114,26 @@ async def register(item: RegisterItem):
     db: Session = SessionLocal()
     existing_user = db.query(User).filter(User.name == item.name).first()
     if existing_user:
-        return {"uid": existing_user.uid}  # return existing UUID
+        return {"uid": existing_user.uid, "existing": True}  # return existing UUID
     else:
-        new_user = User(uid=str(uuid.uuid4()), name=item.name)
+        new_user = User(
+            uid=str(uuid.uuid4()), name=item.name, openai_key=item.openai_key
+        )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        return {"uid": new_user.uid}
+        return {"uid": new_user.uid, "existing": False}
+
+
+@app.post("/user_details")
+async def user_details(item: UserIDItem):
+    db: Session = SessionLocal()
+    print(item)
+    user = db.query(User).filter(User.uid == item.uid).first()
+    if not user:
+        return {"message": "No user with this uid found"}
+
+    return {"uid": user.uid, "name": user.name, "openai_key": user.openai_key}
 
 
 @app.post("/assist")
@@ -128,6 +145,9 @@ async def assist(item: AssistItem):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid uid")
 
+    if item.version.startswith("gpt-"):
+        openai.api_key = user.openai_key
+        response = openai_text_call(item.prompt, model=item.version)
     if item.version == "falcon":
         output = model.generate(item.prompt, max_tokens=60, temp=0)
         response = {"text": output, "usage": None, "finish_reason": None, "error": None}
