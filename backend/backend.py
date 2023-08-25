@@ -152,13 +152,15 @@ async def assist(item: AssistItem):
         response = openai_text_call(item.prompt, model=item.version)
         if "error" in response:
             raise HTTPException(status_code=400, detail=response["error"])
-    if item.version == "falcon":
+    elif item.version == "falcon":
         output = (
             model.generate(item.prompt, max_tokens=60, temp=0)
             if GPT4ALL_MODELS_ENABLED
             else "MODEL DISABLED"
         )
         response = {"text": output, "usage": None, "finish_reason": None, "error": None}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid version: "+item.version)
 
     # Update the last time assist was called
     user.last_assist = datetime.now()
