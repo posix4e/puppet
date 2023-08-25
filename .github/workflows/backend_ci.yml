@@ -20,6 +20,6 @@ jobs:
       - name: pip Install
         run: pip install -r requirements.txt
       - name: UnitTests
-        run: python -m doctest -v backend.py
+        run: python -m doctest -v backend.py backend_ui.py
       - name: EndToEnd Test
         run: pytest
