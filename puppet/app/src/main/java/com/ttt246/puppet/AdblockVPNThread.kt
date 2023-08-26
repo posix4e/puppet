@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.system.ErrnoException
-import android.system.Os.socket
 import android.system.OsConstants
 import android.util.Log
 import androidx.preference.PreferenceManager
@@ -24,15 +23,14 @@ import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.io.InputStreamReader
-import java.io.PrintWriter
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.InetAddress
-import java.net.Socket
 import java.net.URI
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.SynchronousQueue
@@ -166,8 +164,6 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
 
                 // Packets to be sent to the real DNS server will need to be protected from the VPN
                 val dnsSocket = DatagramSocket()
-                vpnService.protect(dnsSocket)
-
 
                 Log.i(TAG, "Starting new thread to handle dns request" +
                         " (active = ${executor.activeCount} backlog = ${executor.queue.size})")
@@ -187,22 +183,30 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
         }
     }
 
-    private fun sendPuppetRequest(domain: String, uid: String, s: Socket, host: String): Boolean{
+    private fun sendPuppetRequest(domain: String, uid: String, host: String): Boolean{
         var allowed: Boolean = true
-        val writer = PrintWriter(s.getOutputStream())
-        val requestBody = "{\"data\":[\"$uid\", \"$domain\", \"falcon\"],\"event_data\":null,\"fn_index\":32,\"session_hash\":\"ccomaehgo0q\"}"
+        var modifiedHost: String = host
 
-        writer.println("POST /run/predict HTTP/1.1")
-        writer.println("Content-Length: "+requestBody.length)
-        writer.println("Content-Type: application/json")
-        writer.println("Host: $host")
-        writer.println("")
-        writer.println(requestBody)
+        if(host.contains("hf.space")){
+            if (!host.endsWith("/")){
+                modifiedHost += "/"
+            }
+            modifiedHost+="api/predict"
+        }
+        val url = URL(modifiedHost)
+        val con = url.openConnection() as HttpURLConnection
+        con.requestMethod = "POST";
+        con.setRequestProperty("Content-Type", "application/json");
+        con.doOutput = true;
 
-        writer.flush()
-
+        val jsonInputString = "{\"data\":[\"$uid\", \"$domain\", \"falcon\"],\"event_data\":null,\"fn_index\":20,\"session_hash\":\"ccomaehgo0q\"}"
+        con.outputStream.use { os ->
+            val input = jsonInputString.toByteArray(charset("utf-8"))
+            os.write(input, 0, input.size)
+        }
         Log.i(TAG, "Server response from puppet:")
-        val inputStream = s.getInputStream()
+
+        val inputStream = con.inputStream
         val bufferedInputStream = BufferedInputStream(inputStream)
         val buffer = ByteArray(4096) // or any other appropriate size
 
@@ -224,7 +228,6 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
         }
         bufferedInputStream.close()
         inputStream.close()
-        writer.close()
 
         return allowed
     }
@@ -259,11 +262,9 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
             }else{
                 80
             }
-            val s = Socket(uri.host, port)
-            vpnService.protect(s)
+            Log.i(TAG, "uri.host: "+uri.host+" host: $host")
 
-            var allowed: Boolean = sendPuppetRequest(dnsQueryName, uid, s, host)
-            s.close()
+            var allowed: Boolean = sendPuppetRequest(dnsQueryName, uid, host)
 
             if(allowed){
                 Log.i(TAG, "DNS Name $dnsQueryName Allowed!")
@@ -327,7 +328,7 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
         } catch (e: VpnNetworkException) {
             Log.w(TAG, "Ignoring exception, stopping thread", e)
         } catch (e: Exception) {
-            Log.e(TAG, "Got exception", e)
+            Log.e(TAG, "Got exception: " + e.printStackTrace(), e)
         } finally {
             dnsSocket.close()
             outFd.close()
@@ -349,6 +350,8 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
             .addDnsServer("192.168.50.5")
             .addRoute("192.168.50.0", 24)
             .setBlocking(true)
+            .allowBypass()
+            .addDisallowedApplication(BuildConfig.APPLICATION_ID)
 
         // Create a new interface using the builder and save the parameters.
         val pfd = builder
