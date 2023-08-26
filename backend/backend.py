@@ -64,9 +64,9 @@ class SaveURLItem(BaseModel):
 
 
 class URLItem(BaseModel):
-    uid: str
     url: str
     version: str
+    uid: Optional[str]
 
 
 @app.post("/add_command")
@@ -182,11 +182,10 @@ async def adblock_filter(item: URLItem):
         item.url
     )
 
-    user = db.query(User).filter(User.uid == item.uid).first()
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid uid")
-
     if item.version.startswith("gpt-"):
+        user = db.query(User).filter(User.uid == item.uid).first()
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid uid")
         openai.api_key = user.openai_key
         response = openai_text_call(prompt, model=item.version)
         if response["error"]:

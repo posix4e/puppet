@@ -3,6 +3,7 @@ import requests
 import mistune
 import gradio as gr
 
+from typing import Optional
 from pygments import highlight
 from pygments.formatters import html
 from pygments.lexers import get_lexer_by_name
@@ -180,7 +181,7 @@ def get_add_command_interface():
     )
 
 
-def adblock_filter_interface(uid: str, url: str, version: str):
+def adblock_filter_interface(uid: Optional[str], url: str, version: str):
     response = requests.post(
         url_host + "/adblock_filter",
         json={"uid": uid, "url": url, "version": version},
