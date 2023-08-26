@@ -77,7 +77,9 @@ def save_server_settings(driver: WebDriver):
     element = driver.find_element(
         by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/serverUrlEditText"
     )
-    element.send_keys("https://posix4e-puppet.hf.space")
+    element.send_keys(
+        "https://up20-puppet-staging.hf.space"
+    )  # TODO: revert back to https://posix4e-puppet.hf.space
     element = driver.find_element(
         by=AppiumBy.ID, value=f"{APP_PACKAGE_NAME}:id/uuidEditText"
     )
@@ -160,6 +162,28 @@ class TestAppium(unittest.TestCase):
                 by=AppiumBy.XPATH, value='//*[@text="Submit"]'
             )
             element.click()
+            driver.execute_script("sauce:job-result=passed")
+
+    def test_vpn(self):
+        with android_driver({}) as driver:
+            save_server_settings(driver)
+
+            element = find_and_click(
+                driver,
+                by_selector=AppiumBy.ID,
+                selector_value=f"{APP_PACKAGE_NAME}:id/settingsButton",
+            )
+            element = find_and_click(
+                driver,
+                by_selector=AppiumBy.ID,
+                selector_value=f"{APP_PACKAGE_NAME}:id/enableVPNButton",
+            )
+            element = find_and_click(
+                driver,
+                by_selector=AppiumBy.ID,
+                selector_value=f"{APP_PACKAGE_NAME}:id/disableVPNButton",
+            )
+
             driver.execute_script("sauce:job-result=passed")
 
 

@@ -160,7 +160,7 @@ async def assist(item: AssistItem):
         )
         response = {"text": output, "usage": None, "finish_reason": None, "error": None}
     else:
-        raise HTTPException(status_code=400, detail="Invalid version: "+item.version)
+        raise HTTPException(status_code=400, detail="Invalid version: " + item.version)
 
     # Update the last time assist was called
     user.last_assist = datetime.now()

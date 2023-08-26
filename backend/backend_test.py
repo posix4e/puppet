@@ -7,6 +7,7 @@ import backend
 
 client = TestClient(backend.app)
 
+
 @pytest.mark.asyncio
 async def test_register_new_name():
     data = {"name": "new_name", "openai_key": None}
@@ -47,6 +48,7 @@ async def test_assist_with_no_key():
     }
     response = client.post("/assist", json=data)
     assert "detail" in response.json()
+
 
 @pytest.mark.asyncio
 async def test_adblock_filter_with_no_key():
