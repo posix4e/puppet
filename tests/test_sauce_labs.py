@@ -17,6 +17,7 @@ SAUCE_USERNAME = os.getenv("SAUCE_USERNAME")
 SAUCE_ACCESS_KEY = os.getenv("SAUCE_ACCESS_KEY")
 TEST_UUID = os.getenv("TEST_UUID", "")
 BUILD_STAGE = os.getenv("BUILD_STAGE", "DEV")
+PRE_RELEASE_APK = os.getenv("PRE_RELEASE_APK", "app-release-unsigned.apk")
 
 # Sauce labs URL
 APPIUM_SERVER_URL = "http://127.0.0.1:4723"
@@ -50,7 +51,7 @@ def create_android_driver(sauce_labs=False):
         capabilities["sauce:options"]["accessKey"] = SAUCE_ACCESS_KEY
         capabilities["sauce:options"]["build"] = f"puppet-build-{BUILD_STAGE}"
         capabilities["sauce:options"]["name"] = "Test Android"
-        capabilities["appium:app"] = "storage:filename=app-release-unsigned.apk"
+        capabilities["appium:app"] = f"storage:filename={PRE_RELEASE_APK}"
         capabilities["appium:deviceName"] = "Google_Pixel_3a_real"
 
         connection_url = SAUCE_LABS_URL
