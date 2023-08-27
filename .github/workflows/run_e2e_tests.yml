@@ -39,6 +39,7 @@ jobs:
           SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
         run: |
           ./gradlew assemble
+          set -x
           echo "app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"
           mv app/build/outputs/apk/release/app-release-unsigned.apk "app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"
           curl -u "$SAUCE_USERNAME:$SAUCE_ACCESS_KEY" --location \
