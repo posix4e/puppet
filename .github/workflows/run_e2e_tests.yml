@@ -34,9 +34,16 @@ jobs:
         
       # Create APK Release
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
+        env: 
+          SAUCE_ACCESS_KEY: '${{ secrets.SAUCE_ACCESS_KEY}}'
+          SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
         run: |
           ./gradlew assemble
           mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-unsigned-${{ github.run_number }}.apk
+          curl -u "$SAUCE_USERNAME:$SAUCE_ACCESS_KEY" --location \
+                                                      --request POST 'https://api.us-west-1.saucelabs.com/v1/storage/upload' \
+                                                      --form 'payload=@"app/build/outputs/apk/release/app-release-unsigned-${{ github.run_number }}.apk"' \
+                                                      --form 'name="app-release-unsigned-${{ github.run_number }}.apk"'
 
   test:
     needs: [publish_to_saucelabs]
