@@ -67,4 +67,4 @@ jobs:
           SAUCE_ACCESS_KEY: '${{ secrets.SAUCE_ACCESS_KEY}}'
           SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
           TEST_UUID: '${{ secrets.TEST_UUID}}'
-          PRE_RELEASE_APK: 'app-release-unsigned-${{ env.GITHUB_REF_NAME }}.apk'
+          PRE_RELEASE_APK: 'app-release-unsigned-${{ github.ref_name }}.apk'
