@@ -44,8 +44,8 @@ jobs:
           mv app/build/outputs/apk/release/app-release-unsigned.apk "app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"
           curl -u "$SAUCE_USERNAME:$SAUCE_ACCESS_KEY" --location \
                                                       --request POST 'https://api.us-west-1.saucelabs.com/v1/storage/upload' \
-                                                      --form 'payload=@"app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"' \
-                                                      --form 'name="app-release-unsigned-$GITHUB_REF_NAME.apk"'
+                                                      --form 'payload=@app/build/outputs/apk/release/app-release-unsigned-'"$GITHUB_REF_NAME"'.apk' \
+                                                      --form 'name=app-release-unsigned-'"$GITHUB_REF_NAME"'.apk'
 
   test:
     needs: [publish_to_saucelabs]
