@@ -10,7 +10,7 @@ jobs:
   publish_to_saucelabs:
     defaults:
       run:
-        working-directory: tests
+        working-directory: puppet
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -32,14 +32,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         
-      - name: Compile APK
+      # Create APK Release
+      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
         run: |
-          ./gradlew app:assembleDebug
-          ./gradlew app:assembleDebugAndroidTest
-          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/mda-${{ env.CI_TAG }}-${{ github.run_number }}.apk
-        shell: bash
+          ./gradlew assemble
+          mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-unsigned-${{ github.run_number }}.apk
 
   test:
+    needs: [publish_to_saucelabs]
     defaults:
       run:
         working-directory: tests
