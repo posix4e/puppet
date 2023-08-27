@@ -28,6 +28,9 @@ jobs:
         run: |
           echo "CI_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
         shell: bash
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
         
       - name: Compile APK
         run: |
