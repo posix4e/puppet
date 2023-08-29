@@ -9,7 +9,6 @@ mistune
 sqlalchemy
 swagger-ui-bundle
 gpt4all==1.0.8
-alembic==1.11.3
 
 black
 pytest-asyncio 
