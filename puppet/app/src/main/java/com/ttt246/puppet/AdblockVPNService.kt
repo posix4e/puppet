@@ -7,15 +7,16 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.net.Socket
 
-class AdblockVPNService : VpnService() {
+open class AdblockVPNService : VpnService() {
     private val TAG = "AdblockVpnService"
-    companion object {
-        var vpnStatus: Status = Status.STOPPED
-    }
+    var vpnStatus: Status = Status.STOPPED
+        set(value) {
+            field = value
+            notificationBuilder.setContentText(value.toString())
+            startForeground(10, notificationBuilder.build())
+        }
 
-    private var vpnThread: AdblockVPNThread = AdblockVPNThread(this) {
-        updateVpnStatus(it)
-    }
+    private var vpnThread: AdblockVPNThread = AdblockVPNThread(this)
 
     private var notificationBuilder = NotificationCompat.Builder(this, "vpnChannel")
         .setSmallIcon(androidx.core.R.drawable.ic_call_decline_low)
@@ -30,16 +31,10 @@ class AdblockVPNService : VpnService() {
         return Service.START_STICKY
     }
 
-    private fun updateVpnStatus(status: Status) {
-        vpnStatus = status
-        notificationBuilder.setContentText(status.toString())
-        startForeground(10, notificationBuilder.build())
-    }
-
     private fun startVpn() {
 
         notificationBuilder.setContentTitle("Puppet Adblock VPN")
-        updateVpnStatus(Status.STARTING)
+        vpnStatus = Status.STARTING
         restartVpnThread()
     }
 
@@ -55,7 +50,7 @@ class AdblockVPNService : VpnService() {
     private fun stopVpn() {
         Log.i(TAG, "Stopping Service")
         stopVpnThread()
-        updateVpnStatus(Status.STOPPED)
+        vpnStatus = Status.STOPPED
         stopSelf()
     }
 

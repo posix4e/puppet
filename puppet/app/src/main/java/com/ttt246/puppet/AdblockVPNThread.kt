@@ -42,9 +42,8 @@ class VpnNetworkException(msg: String) : RuntimeException(msg)
 
 const val MIN_RETRY_TIME = 5
 const val MAX_RETRY_TIME = 2*60
-class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Runnable {
+class AdblockVPNThread(vpnService: AdblockVPNService): Runnable {
     private val TAG = "AdVpnThread"
-    private var notify: ((Status) -> Unit)? = notify
     private var vpnService = vpnService
     private var dnsServer: InetAddress? = null
     private var vpnFileDescriptor: ParcelFileDescriptor? = null
@@ -75,8 +74,7 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
     @Synchronized override fun run() {
         try {
             Log.i(TAG, "Starting")
-
-            notify?.let { it(Status.STARTING) }
+            vpnService.vpnStatus = Status.STARTING
 
             var retryTimeout = MIN_RETRY_TIME
             // Try connecting the vpn continuously
@@ -94,10 +92,10 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
                     // are exceptions that we expect to happen from network errors
                     Log.w(TAG, "Network exception in vpn thread, ignoring and reconnecting", e)
                     // If an exception was thrown, show to the user and try again
-                    notify?.let { it(Status.RECONNECTING) }
+                    vpnService.vpnStatus = Status.RECONNECTING
                 } catch (e: Exception) {
                     Log.e(TAG, "Network exception in vpn thread, reconnecting", e)
-                    notify?.let { it(Status.RECONNECTING) }
+                    vpnService.vpnStatus = Status.RECONNECTING
                 }
 
                 // ...wait and try again
@@ -117,7 +115,7 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
         } catch (e: Exception) {
             Log.e(TAG, "Exception in run() ", e)
         } finally {
-            notify?.let { it(Status.STOPPING) }
+            vpnService.vpnStatus = Status.STOPPING
             Log.i(TAG, "Exiting")
         }
     }
@@ -140,7 +138,8 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
 
         try {
             // Now we are connected. Set the flag and show the message.
-            notify?.let { it(Status.RUNNING) }
+            vpnService.vpnStatus = Status.RUNNING
+
 
             // We keep forwarding packets till something goes wrong.
             while (true) {
@@ -253,16 +252,6 @@ class AdblockVPNThread(vpnService: VpnService, notify: ((Status) -> Unit)?): Run
 
             val host: String = sharedPreferences?.getString("SERVER_URL", "http://172.17.0.1:7860")!!
             val uid: String = sharedPreferences?.getString("UUID", "")!!
-
-            val uri = URI(host)
-            var port: Int = if(uri.port != -1){
-                uri.port
-            }else if(uri.scheme == "https"){
-                443
-            }else{
-                80
-            }
-            Log.i(TAG, "uri.host: "+uri.host+" host: $host")
 
             var allowed: Boolean = sendPuppetRequest(dnsQueryName, uid, host)
 
