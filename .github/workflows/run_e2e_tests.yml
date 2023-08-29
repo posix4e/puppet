@@ -7,7 +7,48 @@ on:
   workflow_dispatch:
   
 jobs:
+  publish_to_saucelabs:
+    defaults:
+      run:
+        working-directory: puppet
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Detect version from release tag
+        run: |
+          echo "CI_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      # Create APK Release
+      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
+        env: 
+          SAUCE_ACCESS_KEY: '${{ secrets.SAUCE_ACCESS_KEY}}'
+          SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
+        run: |
+          ./gradlew assemble
+          set -x
+          echo "app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"
+          mv app/build/outputs/apk/release/app-release-unsigned.apk "app/build/outputs/apk/release/app-release-unsigned-$GITHUB_REF_NAME.apk"
+          curl -u "$SAUCE_USERNAME:$SAUCE_ACCESS_KEY" --location \
+                                                      --request POST 'https://api.us-west-1.saucelabs.com/v1/storage/upload' \
+                                                      --form 'payload=@app/build/outputs/apk/release/app-release-unsigned-'"$GITHUB_REF_NAME"'.apk' \
+                                                      --form 'name=app-release-unsigned-'"$GITHUB_REF_NAME"'.apk'
+
   test:
+    needs: [publish_to_saucelabs]
     defaults:
       run:
         working-directory: tests
@@ -26,3 +67,4 @@ jobs:
           SAUCE_ACCESS_KEY: '${{ secrets.SAUCE_ACCESS_KEY}}'
           SAUCE_USERNAME: '${{ secrets.SAUCE_USERNAME}}'
           TEST_UUID: '${{ secrets.TEST_UUID}}'
+          PRE_RELEASE_APK: 'app-release-unsigned-${{ github.ref_name }}.apk'
