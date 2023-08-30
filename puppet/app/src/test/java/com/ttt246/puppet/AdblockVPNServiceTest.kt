@@ -35,6 +35,7 @@ class AdblockVPNServiceTest{
             val componentName = adblockService.startService(it)
             assertNotNull(componentName)
             assertEquals(AdblockVPNService::class.java.name, componentName!!.className)
+            onView
         }
     }
 }
