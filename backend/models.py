@@ -54,7 +54,3 @@ class Command(Base):
 
     def __repr__(self):
         return f"self.command"
-
-
-if __name__ == "__main__":
-    print(CreateTable(User.__table__))

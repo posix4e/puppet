@@ -27,15 +27,6 @@ async def test_register_new_name():
 
 
 @pytest.mark.asyncio
-async def test_send_event():
-    data = {
-        "uid": str(uuid.uuid4()),
-        "event": "test event",
-    }
-    client.post("/register", json=data)
-
-
-@pytest.mark.asyncio
 async def test_assist_with_no_key():
     data = {"name": "new_name", "openai_key": None}
     response = client.post("/register", json=data)
