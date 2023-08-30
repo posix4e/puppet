@@ -63,3 +63,22 @@ async def test_adblock_filter_with_no_key():
     }
     response = client.post("/adblock_filter", json=data)
     assert "detail" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_adblock_filter_with_gpt4all():
+    data = {"name": "new_name", "openai_key": None}
+    response = client.post("/register", json=data)
+    uid = response.json()["uid"]
+
+    data = {
+        "uid": uid,
+        "url": "ads.google.com",
+        "version": "falcon",
+    }
+    response = client.post("/adblock_filter", json=data)
+    json_response = response.json()
+    assert "allow" in json_response
+    assert "full_response" in json_response
+    assert type(json_response["allow"]) is bool
+    assert type(json_response["full_response"]) is str
