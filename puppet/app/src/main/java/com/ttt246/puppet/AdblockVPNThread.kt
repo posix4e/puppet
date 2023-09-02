@@ -3,7 +3,6 @@ package com.ttt246.puppet
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.system.ErrnoException
 import android.system.OsConstants
@@ -19,17 +18,14 @@ import org.xbill.DNS.Flags
 import org.xbill.DNS.Message
 import org.xbill.DNS.Section
 import java.io.BufferedInputStream
-import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStreamReader
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.InetAddress
-import java.net.URI
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.RejectedExecutionException
@@ -111,7 +107,7 @@ class AdblockVPNThread(vpnService: AdblockVPNService): Runnable {
             Log.i(TAG, "Stopped")
         } catch (e: InterruptedException) {
             Log.i(TAG, "Vpn Thread interrupted")
-            throw e
+            Thread.currentThread().interrupt();
         } catch (e: Exception) {
             Log.e(TAG, "Exception in run() ", e)
         } finally {
