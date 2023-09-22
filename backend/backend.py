@@ -306,6 +306,7 @@ def register_interface(openai_key):
     )
     return response.json()
 
+
 def get_register_interface():
     def wrapper(openai_key):
         result = register_interface(openai_key)
@@ -322,10 +323,12 @@ def get_register_interface():
         description="Register a new user by entering an OpenAI key.",
     )
 
+
 def get_history_interface(uid):
     client = TestClient(app)
     response = client.get(f"/get_history/{uid}")
     return response.json()
+
 
 def get_history_gradio_interface():
     return Interface(
@@ -336,6 +339,7 @@ def get_history_gradio_interface():
         description="Get the history of questions and answers for a given user.",
     )
 
+
 def add_command_interface(uid, command):
     client = TestClient(app)
     response = client.post(
@@ -344,37 +348,38 @@ def add_command_interface(uid, command):
     )
     return response.json()
 
+
 @app.get("/.well-known/ai-plugin.json")
 async def plugin_manifest(request: Request):
-  host = request.headers['host']
-  with open(".well-known/ai-plugin.json") as f:
-    text = f.read().replace("PLUGIN_HOSTNAME", "https://posix4e-puppet.hf.space/")
-  return JSONResponse(content=json.loads(text))
-
+    host = request.headers["host"]
+    with open(".well-known/ai-plugin.json") as f:
+        text = f.read().replace("PLUGIN_HOSTNAME", "https://posix4e-puppet.hf.space/")
+    return JSONResponse(content=json.loads(text))
 
 
 @app.get("/openapi.yaml")
 async def openai_yaml(request: Request):
-  host = request.headers['host']
-  with open(".well-known/openapi.yaml") as f:
-    text = f.read().replace("PLUGIN_HOSTNAME","https://posix4e-puppet.hf.space/")
-  return JSONResponse(content=json.loads(text))
-
+    host = request.headers["host"]
+    with open(".well-known/openapi.yaml") as f:
+        text = f.read().replace("PLUGIN_HOSTNAME", "https://posix4e-puppet.hf.space/")
+    return JSONResponse(content=json.loads(text))
 
 
 @app.get("/detectcommand/{command}")
 async def get_command(command: str, item: AssistItem):
-  db: Session = SessionLocal()
-  user = db.query(User).filter(User.uid == item.uid).first()
-  if not user:
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.uid == item.uid).first()
+    if not user:
         raise HTTPException(status_code=400, detail="Invalid uid")
-  openai.api_key = user.openai_key
-  response = openai_text_call(item.prompt, model=item.version)
-  return JSONResponse(content= response, status_code=200)
+    openai.api_key = user.openai_key
+    response = openai_text_call(item.prompt, model=item.version)
+    return JSONResponse(content=response, status_code=200)
+
 
 @app.get("/logo.png")
 async def plugin_logo():
-  return FileResponse('/.well-known/logo.jpeg')
+    return FileResponse("/.well-known/logo.jpeg")
+
 
 def get_add_command_interface():
     return Interface(
@@ -387,6 +392,7 @@ def get_add_command_interface():
         title="Add Command",
         description="Add a new command for a given user.",
     )
+
 
 app = mount_gradio_app(
     app,
