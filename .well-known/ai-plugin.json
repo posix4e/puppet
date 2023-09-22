@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "TODO Plugin (no auth)",
+  "name_for_model": "todo",
+  "description_for_human": "Grab commands!",
+  "description_for_model": "Detect whether acc:UP, acc:DOWN, acc:CLICK, or acc:CLICK FIRST are in the function, and if so, return that.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://https://posix4e-puppet.hf.space/logo.png",
+  "contact_email": "Info@ttt246.net",
+  "legal_info_url": "https://www.ttt246.net/legal"
+}
