@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@v2
     
     - name: Debug BackgroundSpec
-      run: cat /home/runner/work/puppet/puppet/earth/Tests
+      run: cat /home/runner/work/puppet/puppet/earth/Tests/BackgroundSpec.js
 
     - name: Setup Node.js
       uses: actions/setup-node@v2
