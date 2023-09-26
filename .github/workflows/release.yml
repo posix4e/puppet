@@ -1,24 +1,20 @@
-name: Release All CI
-env:
-  main_project_module: app
+name: Release Only
+
 on:
   push:
-    paths:
-      - "puppet/**"
     tags:
       - '*'
   workflow_dispatch:
+
 jobs:
   build-android:
-    permissions: write-all
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: puppet
+    permissions: write-all
     steps:
       - uses: actions/checkout@v3
       # Set Current Date As Env Variable
       - name: Set current date as env variable
+        working-directory: ./puppet
         run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       # Set Repository Name As Env Variable
@@ -34,13 +30,11 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      # Run Tests Build
-      - name: Run gradle tests
-        run: ./gradlew test
+        working-directory: ./puppet
 
       - name: Build with Gradle
         run: ./gradlew build
+        working-directory: ./puppet
 
       - name: Archive lint results
         if: always()
@@ -48,61 +42,47 @@ jobs:
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
-
-        # Create APK Debug
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         env:
           UUID: ${{ secrets.UUID}}
           SERVER_URL: ${{ secrets.SERVER_URL }}
         run: ./gradlew assembleDebug
-
-        # Create APK Release
+        working-directory: ./puppet
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
         env:
           UUID: ${{ secrets.RELEASE_UUID}}
           SERVER_URL: ${{ secrets.RELEASE_SERVER_URL }}
         run: ./gradlew assemble
-
-        # Create Bundle AAB Release
-        # Noted for main module build [main_project_module]:bundleRelease
+        working-directory: ./puppet
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
-        run: ./gradlew ${{ env.main_project_module }}:bundleRelease
-
-        # Upload Artifact Build
-        # Noted For Output [main_project_module]/build/outputs/apk/debug/
+        run: ./gradlew app:bundleRelease
+        working-directory: ./puppet
+      - name: Archive extension as a zip file
+        run: zip -r extension.zip  earth/earth\ Extension
+      - name: Upload extension zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: extension-zip
+          path: extension.zip
       - name: Upload APK Debug - ${{ env.repository_name }}
         uses: actions/upload-artifact@v2
         with:
           name: android-debug
           path: puppet/${{ env.main_project_module }}/build/outputs/apk/debug/
-
-        # Noted For Output [main_project_module]/build/outputs/apk/release/
       - name: Upload APK Release - ${{ env.repository_name }}
         uses: actions/upload-artifact@v2
         with:
           name: android-release
           path: puppet/${{ env.main_project_module }}/build/outputs/apk/release/
-
-        # Noted For Output [main_project_module]/build/outputs/bundle/release/
       - name: Upload AAB (App Bundle) Release - ${{ env.repository_name }}
         uses: actions/upload-artifact@v2
         with:
           name: android-bundle
           path: puppet/${{ env.main_project_module }}/build/outputs/bundle/release/
-
-  release:
-    needs: [build-android]
-    permissions: write-all
-    runs-on: ubuntu-latest
-    steps:
       - name: Download All Artifacts
         uses: actions/download-artifact@v3
         with:
           path: ./
-
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -113,13 +93,32 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-
+      - name: Upload chrome extension
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: extension.zip
+          asset_name: extension.zip
+          asset_content_type: application/zip
+      - name: Display structure of downloaded files
+        run: ls -R
+      - name: Upload Android Debug
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./puppet/app/build/outputs/apk/debug/app-debug.apk # Update this with the correct APK path
+          asset_name: app-debug-unsigned.apk
+          asset_content_type: application/vnd.android.package-archive
       - name: Upload Android Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: android-debug/app-debug.apk # Update this with the correct APK path
+          asset_path: ./puppet/app/build/outputs/apk/release/app-release-unsigned.apk # Update this with the correct APK path
           asset_name: app-release-unsigned.apk
           asset_content_type: application/vnd.android.package-archive
