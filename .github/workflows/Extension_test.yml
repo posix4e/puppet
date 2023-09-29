@@ -7,9 +7,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-        paths:
-          - "puppet/earth"
-        branches: [ "main" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
