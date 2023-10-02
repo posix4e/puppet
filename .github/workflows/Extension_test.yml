@@ -1,7 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Extension Test
+name: Extension Test and Release
 
 on:
   push:
@@ -9,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+  release:
+    types:
+      - created
 
 jobs:
   test:
@@ -25,8 +25,10 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: 14 # Change to your preferred Node.js version
+    
     - name: Clear npm cache
       run: npm cache clean --force
+    
     - name: Clear Yarn cache
       run: yarn cache clean
       
@@ -34,17 +36,32 @@ jobs:
       run: npm install
 
     - name: Run Jasmine tests
-      run:  npm install --save-dev jasmine
+      run: npm install --save-dev jasmine
     
-    - name: config jasmine 
-      run:  npm install -g jasmine
-    - name: Install ajax
+    - name: Configure Jasmine 
+      run: npm install -g jasmine
+    
+    - name: Install jasmine-ajax
       run: npm install jasmine-ajax --save-dev
-
     
-    - name: config project 
-      run:  npx jasmine init
+    - name: Configure project 
+      run: npx jasmine init
+    
+    - name: Test project 
+      run: npx jasmine /home/runner/work/puppet/puppet/earth/Tests/BackgroundSpec.js
 
-    - name: test project 
-      run:  npx jasmine /home/runner/work/puppet/puppet/earth/Tests/BackgroundSpec.js
-      
+  release:
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Archive extension as a zip file
+      run: |
+        # Create a zip file of your extension or project
+        zip -r extension.zip /path/to/extension
+
+    - name: Upload extension zip
+      uses: actions/upload-artifact@v2
+      with:
+        name: extension-zip
+        path: extension.zip
