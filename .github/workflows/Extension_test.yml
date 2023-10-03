@@ -58,7 +58,7 @@ jobs:
     - name: Archive extension as a zip file
       run: |
         # Create a zip file of your extension or project
-        zip -r extension.zip  . -i /home/runner/work/puppet/puppet/earth/Tests
+        zip -r extension.zip  . -i /home/runner/work/puppet/puppet/earth/'earth Extension'
 
     - name: Upload extension zip
       uses: actions/upload-artifact@v2
