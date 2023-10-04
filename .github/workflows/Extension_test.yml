@@ -49,19 +49,3 @@ jobs:
     
     - name: Test project 
       run: npx jasmine /home/runner/work/puppet/puppet/earth/Tests/BackgroundSpec.js
-
-  release:
-    needs: [test]
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Archive extension as a zip file
-      run: |
-        # Create a zip file of your extension or project
-        zip -r extension.zip  . -i /home/runner/work/puppet/puppet/earth/'earth Extension'
-
-    - name: Upload extension zip
-      uses: actions/upload-artifact@v2
-      with:
-        name: extension-zip
-        path: extension.zip
