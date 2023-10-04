@@ -1,9 +1,15 @@
 name: Release Only
 
 on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
   release:
     types:
       - created
+
 
 jobs:
   release:
@@ -21,4 +27,3 @@ jobs:
         name: extension-zip
         path: extension.zip
 
-        
