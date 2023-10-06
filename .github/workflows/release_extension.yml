@@ -2,8 +2,6 @@ name: Release Only
 
 on:
   push:
-    paths:
-      - "puppet/**"
     tags:
       - '*'
   workflow_dispatch:
