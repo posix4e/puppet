@@ -2,14 +2,11 @@ name: Release Only
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    paths:
+      - "puppet/**"
+    tags:
+      - '*'
   workflow_dispatch:
-  release:
-    types:
-      - created
-
 
 jobs:
   release:
