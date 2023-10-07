@@ -1,6 +1,9 @@
 name: Release Only
+
 on:
   push:
+    branches:
+      - '*'  # This will trigger the workflow on pushes to any branch
     tags:
       - '*'
   workflow_dispatch:
