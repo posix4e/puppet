@@ -1,5 +1,4 @@
 name: Release Only
-
 on:
   push:
     tags:
