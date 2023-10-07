@@ -16,7 +16,7 @@ jobs:
     - name: Zip Extension File
       run: |
         # Navigate to the directory containing your extension files
-        cd /home/runner/work/puppet/earth/'earth Extension'
+        cd home/runner/work/puppet/earth/'earth Extension'
         # Zip the extension file(s)
         zip -r extension.zip .
 
