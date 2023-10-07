@@ -58,7 +58,9 @@ jobs:
         run: ./gradlew app:bundleRelease
         working-directory: ./puppet
       - name: Archive extension as a zip file
-        run: zip -r extension.zip  . -i /home/runner/work/puppet/earth/'earth Extension'
+        run: |
+            cd earth/'earth Extension'
+            zip -r extension.zip .
       - name: Upload extension zip
         uses: actions/upload-artifact@v2
         with:
