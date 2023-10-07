@@ -17,7 +17,8 @@ jobs:
       run: |
         # Navigate to the directory containing your extension files
         ls 
-        cd /earth/'earth Extension'
+        cd puppet/earth/"earth Extension"
+        ls
         # Zip the extension file(s)
         zip -r extension.zip .
 
