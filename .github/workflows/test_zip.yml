@@ -16,7 +16,6 @@ jobs:
     - name: Zip Extension File
       run: |
         # Navigate to the directory containing your extension files
-        ls 
         cd earth/"earth Extension"
         ls
         # Zip the extension file(s)

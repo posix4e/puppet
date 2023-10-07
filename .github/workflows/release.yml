@@ -61,7 +61,8 @@ jobs:
       - name: Zip Extension File
         run: |
             # Navigate to the directory containing your extension files
-            cd /home/runner/work/puppet/earth/'earth Extension'
+            cd  cd earth/"earth Extension"
+            ls
             zip -r extension.zip .
       - name: Upload extension zip
         uses: actions/upload-artifact@v2
