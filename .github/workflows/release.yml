@@ -1,5 +1,4 @@
 name: Release Only
-
 on:
   push:
     tags:
@@ -57,8 +56,13 @@ jobs:
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
         run: ./gradlew app:bundleRelease
         working-directory: ./puppet
-      - name: Archive extension as a zip file
-        run: zip -r extension.zip  . -i /home/runner/work/puppet/earth/'earth Extension'
+      # - name: Archive extension as a zip file
+      #   run: zip -r extension.zip  . -i /earth/'earth Extension'
+      - name: Zip Extension File
+        run: |
+            # Navigate to the directory containing your extension files
+            cd earth/"earth Extension"
+            zip -r extension.zip .
       - name: Upload extension zip
         uses: actions/upload-artifact@v2
         with:
