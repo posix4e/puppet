@@ -58,10 +58,15 @@ jobs:
         run: ./gradlew app:bundleRelease
         working-directory: ./puppet
       - name: Archive extension as a zip file
-        run: zip -r extension.zip  . -i /home/runner/work/puppet/earth/'earth Extension'
+        run: |
+           zip -r extension.zip earth/'earth Extension'
       - name: Upload extension zip
         uses: actions/upload-artifact@v2
         with:
+          tag_name: Release-Only-Zip-File-${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
           name: extension-zip
           path: extension.zip
       - name: Upload APK Debug - ${{ env.repository_name }}
@@ -89,7 +94,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: Release${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
@@ -98,6 +103,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: Release-Only-Zip-File-${{ github.ref }}
+          release_name: Release ${{ github.ref }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: extension.zip
           asset_name: extension.zip
